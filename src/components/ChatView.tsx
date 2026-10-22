@@ -35,9 +35,9 @@ export function ChatView({
 
   return (
     <section className="flex min-w-0 flex-1 flex-col">
-      <div className="flex-1 space-y-4 overflow-y-auto px-6 py-6">
+      <div className="min-w-0 flex-1 space-y-3 overflow-y-auto px-3 py-4 md:space-y-4 md:px-6 md:py-6">
         {messages.length === 0 && (
-          <div className="mx-auto mt-16 max-w-md text-center text-sm text-slate-500">
+          <div className="mx-auto mt-10 max-w-md px-2 text-center text-sm text-slate-500 md:mt-16 md:px-0">
             <p className="font-medium text-slate-700 dark:text-slate-300">Start a conversation</p>
             <p className="mt-1">
               Add an API key under Providers, then send a message. Responses stream in token by token.
@@ -51,7 +51,7 @@ export function ChatView({
       </div>
 
       <form
-        className="border-t border-slate-200 p-4 dark:border-slate-800"
+        className="border-t border-slate-200 p-3 md:p-4 dark:border-slate-800"
         onSubmit={(e) => {
           e.preventDefault();
           if (streaming) onStop();
@@ -71,12 +71,13 @@ export function ChatView({
             rows={2}
             placeholder="Message (Enter to send, Shift+Enter for newline)"
             aria-label="Message"
-            className="min-h-[2.5rem] flex-1 resize-none rounded-md border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-indigo-500 dark:border-slate-700 dark:bg-slate-900"
+            // 16px on phones stops iOS Safari from zooming into the field; 14px from md up as before.
+            className="min-h-11 min-w-0 flex-1 resize-none rounded-md border border-slate-300 bg-white px-3 py-2 text-base outline-none focus:border-indigo-500 md:min-h-[2.5rem] md:text-sm dark:border-slate-700 dark:bg-slate-900"
           />
           <button
             type="submit"
             disabled={!streaming && draft.trim().length === 0}
-            className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-500 disabled:opacity-50"
+            className="min-h-11 shrink-0 rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white md:min-h-0 hover:bg-indigo-500 disabled:opacity-50"
           >
             {streaming ? 'Stop' : 'Send'}
           </button>
@@ -94,7 +95,7 @@ function Bubble({ message, streaming }: { message: StoredMessage; streaming: boo
   return (
     <div className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}>
       <div
-        className={`max-w-[75%] whitespace-pre-wrap rounded-lg px-4 py-2.5 text-sm leading-relaxed ${
+        className={`max-w-[88%] break-words whitespace-pre-wrap rounded-lg px-3.5 py-2.5 text-sm leading-relaxed md:max-w-[75%] md:px-4 ${
           isUser
             ? 'bg-indigo-600 text-white'
             : 'border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900'

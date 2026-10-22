@@ -14,6 +14,25 @@ function Row({ label, value }: { label: string; value: string }) {
   );
 }
 
+function StatsList({ stats }: { stats: ResponseStats }) {
+  return (
+    <dl>
+      <Row label="Time to first token" value={formatDuration(stats.ttftMs)} />
+      <Row label="Total latency" value={formatDuration(stats.totalMs)} />
+      <Row label="Throughput" value={formatRate(stats.tokensPerSecond)} />
+      <Row label="Prompt tokens" value={stats.promptTokens?.toString() ?? '-'} />
+      <Row label="Completion tokens" value={stats.completionTokens.toString()} />
+      <Row label="Total tokens" value={stats.totalTokens?.toString() ?? '-'} />
+      <p className="pt-3 text-xs text-slate-500">
+        {stats.estimated
+          ? 'Completion tokens are estimated (about 4 characters per token) because the provider did not report usage.'
+          : 'Token counts are reported by the provider.'}
+      </p>
+    </dl>
+  );
+}
+
+/** Desktop (xl and up): the right-hand stats column. Unchanged. */
 export function StatsPanel({ stats }: StatsPanelProps) {
   return (
     <aside className="hidden w-64 shrink-0 border-l border-slate-200 bg-white p-4 xl:block dark:border-slate-800 dark:bg-slate-900">
@@ -21,20 +40,25 @@ export function StatsPanel({ stats }: StatsPanelProps) {
       {!stats ? (
         <p className="text-xs text-slate-500">Stats appear here after a response finishes.</p>
       ) : (
-        <dl>
-          <Row label="Time to first token" value={formatDuration(stats.ttftMs)} />
-          <Row label="Total latency" value={formatDuration(stats.totalMs)} />
-          <Row label="Throughput" value={formatRate(stats.tokensPerSecond)} />
-          <Row label="Prompt tokens" value={stats.promptTokens?.toString() ?? '-'} />
-          <Row label="Completion tokens" value={stats.completionTokens.toString()} />
-          <Row label="Total tokens" value={stats.totalTokens?.toString() ?? '-'} />
-          <p className="pt-3 text-xs text-slate-500">
-            {stats.estimated
-              ? 'Completion tokens are estimated (about 4 characters per token) because the provider did not report usage.'
-              : 'Token counts are reported by the provider.'}
-          </p>
-        </dl>
+        <StatsList stats={stats} />
       )}
     </aside>
+  );
+}
+
+/** Below xl: the same stats collapsed into a disclosure above the chat. Hidden at xl and up. */
+export function StatsDisclosure({ stats }: { stats: ResponseStats }) {
+  return (
+    <details className="group border-b border-slate-200 bg-white px-4 dark:border-slate-800 dark:bg-slate-900 xl:hidden">
+      <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between text-xs font-medium uppercase tracking-wide text-slate-500">
+        Last response stats
+        <span aria-hidden="true" className="transition-transform group-open:rotate-180">
+          ▾
+        </span>
+      </summary>
+      <div className="pb-3">
+        <StatsList stats={stats} />
+      </div>
+    </details>
   );
 }

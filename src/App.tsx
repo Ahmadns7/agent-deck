@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { ChatView } from './components/ChatView';
 import { Sidebar } from './components/Sidebar';
 import { SettingsPanel } from './components/SettingsPanel';
-import { StatsPanel } from './components/StatsPanel';
+import { StatsDisclosure, StatsPanel } from './components/StatsPanel';
 import { PROVIDER_PRESETS } from './lib/providers';
 import { lastStatsMessage, titleFrom, updateConversation, updateMessage } from './lib/conversations';
 import { loadJSON, saveJSON, STORAGE_KEYS } from './lib/storage';
@@ -32,6 +32,7 @@ export default function App() {
   const [draft, setDraft] = useState('');
   const [streaming, setStreaming] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
 
   const activeProvider =
@@ -141,42 +142,69 @@ export default function App() {
 
   return (
     <div className="flex h-screen overflow-hidden bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100">
+      {showHistory && (
+        <div
+          className="fixed inset-0 z-30 bg-black/50 md:hidden"
+          onClick={() => setShowHistory(false)}
+          aria-hidden="true"
+        />
+      )}
       <Sidebar
         conversations={conversations}
         currentId={currentId}
         disabled={streaming}
+        open={showHistory}
+        onClose={() => setShowHistory(false)}
         onSelect={(id) => {
-          if (!streaming) setCurrentId(id);
+          if (!streaming) {
+            setCurrentId(id);
+            setShowHistory(false);
+          }
         }}
-        onNew={newChat}
+        onNew={() => {
+          newChat();
+          setShowHistory(false);
+        }}
         onDelete={deleteConversation}
       />
 
       <main className="flex min-w-0 flex-1 flex-col">
-        <header className="flex items-center justify-between border-b border-slate-200 px-5 py-3 dark:border-slate-800">
-          <div className="min-w-0">
+        <header className="flex items-center gap-2 border-b border-slate-200 px-3 py-2 md:justify-between md:px-5 md:py-3 dark:border-slate-800">
+          <button
+            type="button"
+            onClick={() => setShowHistory(true)}
+            aria-label="Open history"
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-md border border-slate-300 md:hidden dark:border-slate-700"
+          >
+            ☰
+          </button>
+          <div className="min-w-0 flex-1 md:flex-initial">
             <h1 className="truncate text-sm font-semibold">{current?.title ?? 'New chat'}</h1>
-            <p className="text-xs text-slate-500">
+            <p className="truncate text-xs text-slate-500">
               {activeProvider ? `${activeProvider.name} · ${activeProvider.model}` : 'No provider'}
             </p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex shrink-0 items-center gap-1 md:gap-2">
             <button
               type="button"
               onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-              className="rounded-md border border-slate-300 px-2.5 py-1 text-xs hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800"
+              aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
+              className="min-h-11 min-w-11 rounded-md border border-slate-300 px-2.5 text-xs hover:bg-slate-100 md:min-h-0 md:min-w-0 md:py-1 dark:border-slate-700 dark:hover:bg-slate-800"
             >
-              {theme === 'dark' ? 'Light' : 'Dark'} mode
+              <span className="md:hidden">{theme === 'dark' ? '☀' : '☾'}</span>
+              <span className="hidden md:inline">{theme === 'dark' ? 'Light' : 'Dark'} mode</span>
             </button>
             <button
               type="button"
               onClick={() => setShowSettings(true)}
-              className="rounded-md border border-slate-300 px-2.5 py-1 text-xs hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800"
+              className="min-h-11 rounded-md border border-slate-300 px-3 text-xs hover:bg-slate-100 md:min-h-0 md:px-2.5 md:py-1 dark:border-slate-700 dark:hover:bg-slate-800"
             >
               Providers
             </button>
           </div>
         </header>
+
+        {stats && <StatsDisclosure stats={stats} />}
 
         <div className="flex min-h-0 flex-1">
           <ChatView

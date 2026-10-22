@@ -2,9 +2,9 @@
 
 A multi-LLM playground. Chat with OpenAI-compatible endpoints (OpenAI, Ollama, LM Studio, OpenRouter, any custom base URL) and Anthropic, with token-by-token streaming and per-response stats.
 
-![Agent Deck screenshot](docs/screenshot.png)
+![Agent Deck chat view with the last-response stats panel on the right](docs/screenshot.png)
 
-> Screenshot placeholder: add `docs/screenshot.png` before publishing.
+*Chat view with per-response stats. The conversation shown is seeded sample data, not a live provider response.*
 
 ## Features
 
@@ -30,6 +30,16 @@ npm run dev
 ```
 
 Open the printed local URL, click **Providers**, pick a preset, paste your API key, and click **Use**.
+
+## Deploy to Vercel
+
+Agent Deck is a static Vite app, so it deploys to Vercel with no backend. `vercel.json` already sets the framework, build command (`npm run build`), and output directory (`dist`).
+
+1. Go to [vercel.com](https://vercel.com) and sign in with GitHub.
+2. Click **Add New... > Project**, then import the `agent-deck` repository.
+3. Keep the detected settings and click **Deploy**.
+
+API keys are entered in the browser after the site loads and stay in that browser's `localStorage`, so no environment variables are needed.
 
 ## Scripts
 

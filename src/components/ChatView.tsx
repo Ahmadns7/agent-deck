@@ -1,10 +1,14 @@
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
-import type { StoredMessage } from '../lib/types';
+import type { Attachment, StoredMessage } from '../lib/types';
+import { readAttachment } from '../lib/attachments';
+import { contentText } from '../lib/attachments';
 
 interface ChatViewProps {
   messages: StoredMessage[];
   draft: string;
   onDraftChange: (value: string) => void;
+  attachments: Attachment[];
+  onAttachmentsChange: (next: Attachment[]) => void;
   onSend: () => void;
   onStop: () => void;
   onPromptSelect?: (prompt: string) => void;
@@ -17,6 +21,8 @@ export function ChatView({
   messages,
   draft,
   onDraftChange,
+  attachments,
+  onAttachmentsChange,
   onSend,
   onStop,
   onPromptSelect,
@@ -25,6 +31,17 @@ export function ChatView({
   providerReady,
 }: ChatViewProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  async function addFiles(files: FileList | null) {
+    if (!files || files.length === 0) return;
+    const next: Attachment[] = [];
+    for (const file of Array.from(files)) {
+      next.push(await readAttachment(file, `${file.name}-${file.size}-${Date.now()}-${Math.random()}`));
+    }
+    onAttachmentsChange([...attachments, ...next]);
+    if (fileRef.current) fileRef.current.value = '';
+  }
 
   // Scroll only the chat container (not the page) so fixed chrome never shifts; re-runs on every streamed chunk.
   const last = messages[messages.length - 1];
@@ -76,7 +93,48 @@ export function ChatView({
             This provider has no API key yet. Open Providers to add one.
           </p>
         )}
+        {attachments.length > 0 && (
+          <ul className="mb-2 flex flex-wrap gap-2" aria-label="Attachments">
+            {attachments.map((a) => (
+              <li key={a.id} className="flex max-w-full items-center gap-2 rounded-md border border-slate-300 bg-white px-2 py-1 text-xs dark:border-slate-700 dark:bg-slate-900">
+                {a.kind === 'image' && a.dataUrl ? (
+                  <img src={a.dataUrl} alt={a.name} className="h-10 w-10 rounded object-cover" />
+                ) : (
+                  <span aria-hidden="true">{a.kind === 'text' ? '📄' : '📎'}</span>
+                )}
+                <span className="max-w-[10rem] truncate">{a.name}</span>
+                {a.reason && <span className="text-red-500">{a.reason}</span>}
+                <button
+                  type="button"
+                  aria-label={`Remove ${a.name}`}
+                  onClick={() => onAttachmentsChange(attachments.filter((x) => x.id !== a.id))}
+                  className="min-h-8 px-1 text-slate-500 hover:text-red-500"
+                >
+                  ×
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
         <div className="flex items-end gap-2">
+          <input
+            ref={fileRef}
+            type="file"
+            multiple
+            accept="image/*,text/*,.md,.csv,.json,.yaml,.yml,.ts,.tsx,.js,.jsx,.py,.go,.rs,.sql,.log"
+            className="hidden"
+            aria-label="Attach files"
+            onChange={(e) => void addFiles(e.target.files)}
+          />
+          <button
+            type="button"
+            onClick={() => fileRef.current?.click()}
+            aria-label="Attach file"
+            title="Attach file"
+            className="min-h-11 shrink-0 rounded-md border border-slate-300 px-3 text-base hover:bg-slate-100 md:min-h-[2.5rem] md:text-sm dark:border-slate-700 dark:hover:bg-slate-800"
+          >
+            📎
+          </button>
           <textarea
             value={draft}
             onChange={(e) => onDraftChange(e.target.value)}
@@ -89,7 +147,7 @@ export function ChatView({
           />
           <button
             type="submit"
-            disabled={!streaming && draft.trim().length === 0}
+            disabled={!streaming && draft.trim().length === 0 && attachments.length === 0}
             className="min-h-11 shrink-0 rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white md:min-h-0 hover:bg-indigo-500 disabled:opacity-50"
           >
             {streaming ? 'Stop' : 'Send'}
@@ -127,7 +185,8 @@ function Bubble({ message, streaming }: { message: StoredMessage; streaming: boo
   const isUser = message.role === 'user';
   const pending = !isUser && streaming && !message.stats && !message.error && message.content === '';
   const live = !isUser && streaming && !message.stats && !message.error;
-  const canCopy = !isUser && !pending && message.content.length > 0;
+  const plain = contentText(message.content);
+  const canCopy = !isUser && !pending && plain.length > 0;
 
   return (
     <div className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}>
@@ -138,7 +197,12 @@ function Bubble({ message, streaming }: { message: StoredMessage; streaming: boo
             : 'border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900'
         } ${live ? 'caret' : ''}`}
       >
-        {pending ? <span className="text-slate-500">Thinking…</span> : message.content}
+        {message.attachments && message.attachments.length > 0 && (
+          <p className="mb-1 text-xs opacity-80">
+            Attached: {message.attachments.map((a) => `${a.name}${a.kind === 'unsupported' ? ' (unsupported)' : ''}`).join(', ')}
+          </p>
+        )}
+        {pending ? <span className="text-slate-500">Thinking…</span> : plain}
         {!isUser && message.trimmedCount !== undefined && (
           <p className="mt-2 text-xs text-slate-500">older messages trimmed for context limit ({message.trimmedCount} dropped)</p>
         )}
@@ -155,7 +219,7 @@ function Bubble({ message, streaming }: { message: StoredMessage; streaming: boo
         )}
         {canCopy && !live && (
           <div className="mt-1 flex justify-end">
-            <CopyButton text={message.content} />
+            <CopyButton text={plain} />
           </div>
         )}
       </div>

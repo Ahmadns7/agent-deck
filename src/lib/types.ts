@@ -1,9 +1,44 @@
 export type Role = 'system' | 'user' | 'assistant';
 
-/** A message as sent to a provider. */
+export interface TextPart {
+  type: 'text';
+  text: string;
+}
+
+export interface ImagePart {
+  type: 'image_url';
+  image_url: { url: string };
+}
+
+/** OpenAI-compatible content part. Images are sent as data URLs. */
+export type ContentPart = TextPart | ImagePart;
+
+/** A message as sent to a provider. Plain string, or parts when it carries images. */
 export interface ChatMessage {
   role: Role;
-  content: string;
+  content: string | ContentPart[];
+}
+
+/** A file attached in the composer. Images and text files carry content; others are unsupported. */
+export interface Attachment {
+  id: string;
+  name: string;
+  size: number;
+  kind: 'image' | 'text' | 'unsupported';
+  mime: string;
+  /** data: URL for images. */
+  dataUrl?: string;
+  /** File text for text-ish files. */
+  text?: string;
+  /** Why the file was not attached, when kind is unsupported or it was too large. */
+  reason?: string;
+}
+
+/** Metadata kept on the stored message (no file bytes, so localStorage stays small). */
+export interface AttachmentMeta {
+  name: string;
+  kind: Attachment['kind'];
+  size: number;
 }
 
 export interface ResponseStats {
@@ -31,6 +66,8 @@ export interface StoredMessage {
   fellBackFrom?: string;
   /** Number of older messages dropped from the request sent to the provider. */
   trimmedCount?: number;
+  /** Files attached to a user message (metadata only). */
+  attachments?: AttachmentMeta[];
 }
 
 export interface Conversation {
@@ -102,4 +139,12 @@ export interface ProviderConfig {
   fallbackModels?: string[];
   /** Max estimated tokens sent per request. Undefined means the default budget. */
   contextBudget?: number;
+  /** Other configured providers + models tried, in order, after this provider's own models all hit a limit. */
+  crossProviderFallbacks?: ModelRef[];
+}
+
+/** A provider the user configured, plus one of its models. */
+export interface ModelRef {
+  providerId: string;
+  model: string;
 }

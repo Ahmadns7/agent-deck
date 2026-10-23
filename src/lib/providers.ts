@@ -1,4 +1,20 @@
-import type { ChatMessage, ProviderConfig } from './types';
+import type { ChatMessage, ContentPart, ProviderConfig } from './types';
+
+function contentToText(content: ChatMessage['content']): string {
+  if (typeof content === 'string') return content;
+  return content.map((p) => (p.type === 'text' ? p.text : '')).join('\n');
+}
+
+/** Anthropic takes base64 image blocks rather than image_url data URLs. */
+function toAnthropicContent(content: ChatMessage['content']): string | Record<string, unknown>[] {
+  if (typeof content === 'string') return content;
+  return content.map((part: ContentPart) => {
+    if (part.type === 'text') return { type: 'text', text: part.text };
+    const match = /^data:([^;]+);base64,(.*)$/s.exec(part.image_url.url);
+    if (!match) return { type: 'text', text: '[image not sent: unsupported encoding]' };
+    return { type: 'image', source: { type: 'base64', media_type: match[1], data: match[2] } };
+  });
+}
 
 export type ProviderPreset = Omit<ProviderConfig, 'id' | 'apiKey'>;
 
@@ -40,7 +56,7 @@ export function buildChatRequest(provider: ProviderConfig, messages: ChatMessage
   if (provider.kind === 'anthropic') {
     const system = messages
       .filter((m) => m.role === 'system')
-      .map((m) => m.content)
+      .map((m) => contentToText(m.content))
       .join('\n\n');
     const body: Record<string, unknown> = {
       model: provider.model,
@@ -48,7 +64,7 @@ export function buildChatRequest(provider: ProviderConfig, messages: ChatMessage
       stream: true,
       messages: messages
         .filter((m) => m.role !== 'system')
-        .map(({ role, content }) => ({ role, content })),
+        .map(({ role, content }) => ({ role, content: toAnthropicContent(content) })),
     };
     if (system) body.system = system;
 

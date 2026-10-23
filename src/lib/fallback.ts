@@ -71,18 +71,88 @@ export async function runWithFallback<T>(
   attempt: (model: string) => Promise<T>,
   isAborted: () => boolean = () => false,
 ): Promise<FallbackOutcome<T>> {
-  const failures: AttemptFailure[] = [];
-  let last = models[0] ?? '';
-  for (const model of models) {
-    last = model;
+  return runWithFallbackChain(models, attempt, isAborted, (model) => model).then((outcome) => ({
+    ok: outcome.ok,
+    model: outcome.label,
+    value: outcome.value,
+    failures: outcome.failures.map((f) => ({ model: f.label, message: f.message })),
+  }));
+}
+
+export interface ChainFailure {
+  label: string;
+  message: string;
+}
+
+export interface ChainOutcome<A, T> {
+  ok: boolean;
+  /** The attempt that succeeded, or the last one tried. */
+  item?: A;
+  label: string;
+  value?: T;
+  failures: ChainFailure[];
+}
+
+/**
+ * Generic version of runWithFallback: tries each attempt in order and moves on only for
+ * rate/size errors. Used for same-provider model fallbacks and cross-provider fallbacks.
+ */
+export async function runWithFallbackChain<A, T>(
+  items: A[],
+  attempt: (item: A) => Promise<T>,
+  isAborted: () => boolean = () => false,
+  label: (item: A) => string,
+): Promise<ChainOutcome<A, T>> {
+  const failures: ChainFailure[] = [];
+  let lastItem: A | undefined;
+  for (const item of items) {
+    lastItem = item;
     try {
-      const value = await attempt(model);
-      return { ok: true, model, value, failures };
+      const value = await attempt(item);
+      return { ok: true, item, label: label(item), value, failures };
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
-      failures.push({ model, message });
+      failures.push({ label: label(item), message });
       if (isAborted() || !isRetryableLimitError(message)) break;
     }
   }
-  return { ok: false, model: last, failures };
+  return { ok: false, item: lastItem, label: lastItem === undefined ? '' : label(lastItem), failures };
+}
+
+/** Minimal provider shape needed to decide whether a configured provider can be called. */
+export interface ReadyCheck {
+  id: string;
+  name: string;
+  baseUrl: string;
+  apiKey: string;
+  model: string;
+  kind: string;
+}
+
+/**
+ * Resolves the cross-provider chain to concrete provider + model attempts. Skips the
+ * current provider, unknown providers, and providers with no key (unless local Ollama).
+ */
+export function resolveCrossProviderAttempts<P extends ReadyCheck>(
+  refs: { providerId: string; model: string }[],
+  providers: P[],
+  currentId: string,
+): { provider: P; model: string }[] {
+  const out: { provider: P; model: string }[] = [];
+  const seen = new Set<string>();
+  for (const ref of refs) {
+    const model = ref.model.trim();
+    const provider = providers.find((p) => p.id === ref.providerId);
+    if (!provider || !model || provider.id === currentId || !isProviderUsable(provider)) continue;
+    const key = `${provider.id}|${model}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push({ provider, model });
+  }
+  return out;
+}
+
+/** True when a provider has a key, or is a local endpoint that needs none. */
+export function isProviderUsable(provider: { apiKey: string; baseUrl: string; kind: string }): boolean {
+  return Boolean(provider.apiKey) || (provider.kind === 'openai' && provider.baseUrl.includes('localhost'));
 }

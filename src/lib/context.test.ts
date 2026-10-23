@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_CONTEXT_BUDGET, estimateRequestTokens, trimToBudget } from './context';
+import { DEFAULT_CONTEXT_BUDGET, estimateMessageTokens, estimateRequestTokens, IMAGE_TOKEN_ESTIMATE, trimToBudget } from './context';
 import type { ChatMessage } from './types';
 
 /** A message whose estimate is exactly `tokens` (content length 4 * (tokens - 4) chars, plus 4 overhead). */
@@ -92,5 +92,24 @@ describe('trimToBudget', () => {
     const messages = [msg('user', 800), msg('assistant', 800), msg('user', 800), msg('user', 200)];
     const result = trimToBudget(messages, 1200);
     expect(result.estimatedTokens).toBe(estimateRequestTokens(result.messages));
+  });
+});
+
+describe('attachment token estimation', () => {
+  it('counts an image as a fixed estimate, not its base64 length', () => {
+    const huge = 'data:image/png;base64,' + 'A'.repeat(400000);
+    const msg = { role: 'user' as const, content: [{ type: 'image_url' as const, image_url: { url: huge } }] };
+    expect(estimateMessageTokens(msg)).toBe(IMAGE_TOKEN_ESTIMATE + 4);
+  });
+
+  it('still trims older messages when a new message carries an image', () => {
+    const older: ChatMessage[] = Array.from({ length: 6 }, (_, i) => ({ role: i % 2 === 0 ? 'user' : 'assistant', content: 'x'.repeat(400) }));
+    const withImage: ChatMessage = {
+      role: 'user',
+      content: [{ type: 'image_url' as const, image_url: { url: 'data:image/png;base64,AA' } }],
+    };
+    const result = trimToBudget([...older, withImage], IMAGE_TOKEN_ESTIMATE + 50);
+    expect(result.dropped).toBeGreaterThan(0);
+    expect(result.messages[result.messages.length - 1]).toBe(withImage);
   });
 });

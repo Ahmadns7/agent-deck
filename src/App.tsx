@@ -14,9 +14,10 @@ import { lastStatsMessage, titleFrom, updateConversation, updateMessage } from '
 import { loadJSON, saveJSON, STORAGE_KEYS } from './lib/storage';
 import { streamChat } from './lib/stream';
 import { trimToBudget, DEFAULT_CONTEXT_BUDGET } from './lib/context';
-import { effectiveFallbacks, modelAttemptOrder, runWithFallback } from './lib/fallback';
+import { effectiveFallbacks, modelAttemptOrder, resolveCrossProviderAttempts, runWithFallbackChain } from './lib/fallback';
+import { buildUserContent, contentText } from './lib/attachments';
 import { uid } from './lib/id';
-import type { AIFeature, AgentSkill, ChatMessage, Conversation, ProviderConfig, StoredMessage, Workspace } from './lib/types';
+import type { AIFeature, AgentSkill, Attachment, ChatMessage, Conversation, ProviderConfig, StoredMessage, Workspace } from './lib/types';
 
 type Theme = 'dark' | 'light';
 
@@ -38,6 +39,7 @@ export default function App() {
   );
   const [currentId, setCurrentId] = useState<string | null>(null);
   const [draft, setDraft] = useState('');
+  const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [streaming, setStreaming] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showMcp, setShowMcp] = useState(false);
@@ -77,7 +79,7 @@ export default function App() {
   }
 
   function exportConversation(conversation: Conversation) {
-    const markdown = `# ${conversation.title}\n\n${conversation.messages.map((message) => `## ${message.role === 'user' ? 'You' : 'Assistant'}\n\n${message.content}`).join('\n\n')}`;
+    const markdown = `# ${conversation.title}\n\n${conversation.messages.map((message) => `## ${message.role === 'user' ? 'You' : 'Assistant'}\n\n${contentText(message.content)}`).join('\n\n')}`;
     const blob = new Blob([markdown], { type: 'text/markdown' });
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement('a');
@@ -99,17 +101,23 @@ export default function App() {
 
   async function send() {
     const text = draft.trim();
-    if (!text || streaming || !activeProvider) return;
+    if ((!text && attachments.length === 0) || streaming || !activeProvider) return;
 
     const convId = currentId ?? uid();
-    const userMsg: StoredMessage = { id: uid(), role: 'user', content: text };
+    const sent = attachments;
+    const userMsg: StoredMessage = {
+      id: uid(),
+      role: 'user',
+      content: text,
+      attachments: sent.length > 0 ? sent.map((a) => ({ name: a.name, kind: a.kind, size: a.size })) : undefined,
+    };
     const assistantId = uid();
     const assistantMsg: StoredMessage = { id: assistantId, role: 'assistant', content: '' };
 
     setConversations((list) => {
       const base: Conversation = list.find((c) => c.id === convId) ?? {
         id: convId,
-        title: titleFrom(text),
+        title: titleFrom(text || sent[0]?.name || 'Attachment'),
         providerId: activeProvider.id,
         createdAt: Date.now(),
         updatedAt: Date.now(),
@@ -127,9 +135,11 @@ export default function App() {
     });
     setCurrentId(convId);
     setDraft('');
+    setAttachments([]);
     setStreaming(true);
 
     // Build history from the stored conversation (excluding the empty assistant placeholder).
+    // Earlier attachments are not re-sent: only the current message carries file content.
     const history: ChatMessage[] = (conversations.find((c) => c.id === convId)?.messages ?? [])
       .filter((m) => m.content.length > 0 && !m.error)
       .map((m) => ({ role: m.role, content: m.content }));
@@ -138,21 +148,29 @@ export default function App() {
       const featureInstructions = enabledFeatures.map((feature) => `- ${feature.name}: ${feature.description}`).join('\\n');
       history.unshift({ role: 'system', content: `You are MercuReal assistant. Apply these enabled behaviors when relevant:\\n${featureInstructions}\\n\\nInstalled skills:\\n${skills.map((skill) => `## ${skill.name}\\n${skill.instructions}`).join('\\n\\n')}` });
     }
-    history.push({ role: 'user', content: text });
+    history.push({ role: 'user', content: buildUserContent(text, sent) });
 
     // Only the request is trimmed. The stored conversation keeps every message.
     const trim = trimToBudget(history, activeProvider.contextBudget ?? DEFAULT_CONTEXT_BUDGET);
     const requestMessages = trim.messages;
-    const models = modelAttemptOrder(activeProvider.model, effectiveFallbacks(activeProvider));
+    // Attempts: this provider's models first, then the user's cross-provider chain (provider + model pairs).
+    const ownAttempts = modelAttemptOrder(activeProvider.model, effectiveFallbacks(activeProvider)).map((model) => ({
+      provider: activeProvider,
+      model,
+    }));
+    const crossAttempts = resolveCrossProviderAttempts(activeProvider.crossProviderFallbacks ?? [], providers, activeProvider.id);
+    const attempts = [...ownAttempts, ...crossAttempts];
+    const labelOf = (a: { provider: ProviderConfig; model: string }) =>
+      a.provider.id === activeProvider.id ? a.model : `${a.provider.name}: ${a.model}`;
 
     const controller = new AbortController();
     abortRef.current = controller;
 
     try {
-      const outcome = await runWithFallback(
-        models,
-        (model) =>
-          streamChat({ ...activeProvider, model }, requestMessages, {
+      const outcome = await runWithFallbackChain(
+        attempts,
+        (a) =>
+          streamChat({ ...a.provider, model: a.model }, requestMessages, {
             signal: controller.signal,
             onDelta: (delta) =>
               setConversations((list) =>
@@ -160,19 +178,23 @@ export default function App() {
               ),
           }),
         () => controller.signal.aborted,
+        labelOf,
       );
       if (!outcome.ok) {
         const last = outcome.failures[outcome.failures.length - 1];
         const base = last ? last.message : 'no model could answer';
-        throw new Error(models.length > 1 ? `${base} (tried: ${models.join(', ')})` : base);
+        const tried = outcome.failures.map((f) => f.label).join(', ');
+        throw new Error(attempts.length > 1 ? `${base} (tried: ${tried})` : base);
       }
       const result = outcome.value!;
-      const fellBackFrom = outcome.model !== activeProvider.model ? activeProvider.model : undefined;
+      const answered = outcome.item!;
+      const fellBackFrom =
+        answered.provider.id !== activeProvider.id || answered.model !== activeProvider.model ? activeProvider.model : undefined;
       setConversations((list) =>
         updateMessage(list, convId, assistantId, (m) => ({
           ...m,
           stats: result.stats,
-          model: outcome.model,
+          model: outcome.label,
           fellBackFrom,
           trimmedCount: trim.dropped > 0 ? trim.dropped : undefined,
         })),
@@ -302,6 +324,8 @@ export default function App() {
             messages={current?.messages ?? []}
             draft={draft}
             onDraftChange={setDraft}
+            attachments={attachments}
+            onAttachmentsChange={setAttachments}
             onSend={send}
             onStop={stop}
             onPromptSelect={setDraft}

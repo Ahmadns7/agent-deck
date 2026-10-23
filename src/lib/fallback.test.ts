@@ -7,6 +7,9 @@ import {
   modelAttemptOrder,
   parseFallbackModels,
   runWithFallback,
+  resolveCrossProviderAttempts,
+  runWithFallbackChain,
+  isProviderUsable,
 } from './fallback';
 
 describe('isRetryableLimitError', () => {
@@ -120,5 +123,88 @@ describe('runWithFallback', () => {
     );
     expect(tried).toEqual(['a']);
     expect(outcome.ok).toBe(false);
+  });
+});
+
+describe('runWithFallbackChain across providers', () => {
+  it('falls through to another provider after every model on the first hits a limit', async () => {
+    const calls: string[] = [];
+    const items = [
+      { label: 'groq: a' },
+      { label: 'groq: b' },
+      { label: 'gemini: c' },
+    ];
+    const out = await runWithFallbackChain(
+      items,
+      async (item) => {
+        calls.push(item.label);
+        if (item.label.startsWith('gemini')) return 'ok';
+        throw new Error('429 Too Many Requests');
+      },
+      () => false,
+      (item) => item.label,
+    );
+    expect(calls).toEqual(['groq: a', 'groq: b', 'gemini: c']);
+    expect(out.ok).toBe(true);
+    expect(out.label).toBe('gemini: c');
+  });
+
+  it('stops on a non-limit error and does not move to another provider', async () => {
+    const calls: string[] = [];
+    const out = await runWithFallbackChain(
+      [{ label: 'groq: a' }, { label: 'gemini: c' }],
+      async (item) => {
+        calls.push(item.label);
+        throw new Error('401 Unauthorized: invalid api key');
+      },
+      () => false,
+      (item) => item.label,
+    );
+    expect(calls).toEqual(['groq: a']);
+    expect(out.ok).toBe(false);
+  });
+});
+
+describe('resolveCrossProviderAttempts', () => {
+  const providers = [
+    { id: 'groq', name: 'Groq', baseUrl: 'https://api.groq.com/openai/v1', apiKey: 'k1', model: 'm1', kind: 'openai' },
+    { id: 'gem', name: 'Gemini', baseUrl: 'https://generativelanguage.googleapis.com/v1beta/openai', apiKey: 'k2', model: 'g1', kind: 'openai' },
+    { id: 'nokey', name: 'No key', baseUrl: 'https://example.com/v1', apiKey: '', model: 'x', kind: 'openai' },
+    { id: 'local', name: 'Ollama', baseUrl: 'http://localhost:11434/v1', apiKey: '', model: 'llama', kind: 'openai' },
+  ];
+
+  it('keeps configured providers with keys, in chain order, dropping the current one', () => {
+    const out = resolveCrossProviderAttempts(
+      [
+        { providerId: 'gem', model: 'g1' },
+        { providerId: 'groq', model: 'm2' },
+        { providerId: 'gem', model: 'g1' },
+      ],
+      providers,
+      'groq',
+    );
+    expect(out.map((a) => `${a.provider.id}:${a.model}`)).toEqual(['gem:g1']);
+  });
+
+  it('skips unknown providers, blank models, and keyless remote providers, but keeps localhost', () => {
+    const out = resolveCrossProviderAttempts(
+      [
+        { providerId: 'missing', model: 'x' },
+        { providerId: 'nokey', model: 'x' },
+        { providerId: 'gem', model: '  ' },
+        { providerId: 'local', model: 'llama' },
+      ],
+      providers,
+      'groq',
+    );
+    expect(out.map((a) => a.provider.id)).toEqual(['local']);
+  });
+});
+
+describe('isProviderUsable', () => {
+  it('needs a key unless it is a localhost OpenAI-compatible endpoint', () => {
+    expect(isProviderUsable({ apiKey: '', baseUrl: 'https://x.com/v1', kind: 'openai' })).toBe(false);
+    expect(isProviderUsable({ apiKey: 'k', baseUrl: 'https://x.com/v1', kind: 'openai' })).toBe(true);
+    expect(isProviderUsable({ apiKey: '', baseUrl: 'http://localhost:11434/v1', kind: 'openai' })).toBe(true);
   });
 });

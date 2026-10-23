@@ -3,7 +3,7 @@ import { isValidBaseUrl, MODEL_PRESETS, PROVIDER_PRESETS } from '../lib/provider
 import { defaultFallbackFor, effectiveFallbacks, parseFallbackModels } from '../lib/fallback';
 import { DEFAULT_CONTEXT_BUDGET } from '../lib/context';
 import { uid } from '../lib/id';
-import type { ProviderConfig, ProviderKind } from '../lib/types';
+import type { ModelRef, ProviderConfig, ProviderKind } from '../lib/types';
 
 interface SettingsPanelProps {
   providers: ProviderConfig[];
@@ -114,6 +114,7 @@ export function SettingsPanel({ providers, activeId, onChange, onActivate, onClo
               <ProviderForm
                 key={editing.id}
                 provider={editing}
+                allProviders={providers}
                 onChange={(patch) => update(editing.id, patch)}
                 onRemove={() => remove(editing.id)}
               />
@@ -163,12 +164,84 @@ function FallbackField({
   );
 }
 
+function CrossProviderField({
+  provider,
+  providers,
+  onChange,
+}: {
+  provider: ProviderConfig;
+  providers: ProviderConfig[];
+  onChange: (patch: Partial<ProviderConfig>) => void;
+}) {
+  const chain = provider.crossProviderFallbacks ?? [];
+  const others = providers.filter((p) => p.id !== provider.id);
+  const input =
+    'min-h-11 w-full min-w-0 rounded-md border border-slate-300 bg-white px-2.5 py-1.5 text-base outline-none focus:border-indigo-500 md:min-h-0 md:text-sm dark:border-slate-700 dark:bg-slate-950';
+
+  function setChain(next: ModelRef[]) {
+    onChange({ crossProviderFallbacks: next });
+  }
+  function patchRow(index: number, patch: Partial<ModelRef>) {
+    setChain(chain.map((row, i) => (i === index ? { ...row, ...patch } : row)));
+  }
+
+  return (
+    <fieldset className="space-y-2 text-xs text-slate-500">
+      <legend className="mb-1">
+        Cross-provider fallback: if every model above hits a rate or size limit, try these provider and model pairs in order
+      </legend>
+      {others.length === 0 && <p>Add another provider to use cross-provider fallback.</p>}
+      {chain.map((row, index) => (
+        <div key={index} className="flex flex-wrap items-center gap-2">
+          <select
+            aria-label={`Fallback ${index + 1} provider`}
+            className={`${input} sm:w-44`}
+            value={row.providerId}
+            onChange={(e) => patchRow(index, { providerId: e.target.value })}
+          >
+            {others.map((p) => (
+              <option key={p.id} value={p.id}>{p.name}</option>
+            ))}
+          </select>
+          <input
+            aria-label={`Fallback ${index + 1} model`}
+            className={`${input} sm:flex-1`}
+            autoCapitalize="none"
+            autoCorrect="off"
+            spellCheck={false}
+            value={row.model}
+            onChange={(e) => patchRow(index, { model: e.target.value })}
+          />
+          <button
+            type="button"
+            onClick={() => setChain(chain.filter((_, i) => i !== index))}
+            className="min-h-11 rounded-md px-2 hover:bg-slate-100 md:min-h-0 dark:hover:bg-slate-800"
+          >
+            Remove
+          </button>
+        </div>
+      ))}
+      {others.length > 0 && (
+        <button
+          type="button"
+          onClick={() => setChain([...chain, { providerId: others[0].id, model: others[0].model }])}
+          className="min-h-11 rounded-md border border-slate-300 px-3 md:min-h-0 md:py-1 dark:border-slate-700"
+        >
+          Add provider + model
+        </button>
+      )}
+    </fieldset>
+  );
+}
+
 function ProviderForm({
   provider,
+  allProviders,
   onChange,
   onRemove,
 }: {
   provider: ProviderConfig;
+  allProviders: ProviderConfig[];
   onChange: (patch: Partial<ProviderConfig>) => void;
   onRemove: () => void;
 }) {
@@ -233,6 +306,7 @@ function ProviderForm({
         ))}
       </div>
       <FallbackField provider={provider} onChange={onChange} />
+      <CrossProviderField provider={provider} providers={allProviders} onChange={onChange} />
       <label className="block text-xs text-slate-500">
         Context budget (estimated tokens sent per request)
         <input

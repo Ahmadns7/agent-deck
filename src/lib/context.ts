@@ -18,8 +18,19 @@ export interface TrimResult {
   overBudget: boolean;
 }
 
+/**
+ * Fixed token estimate per image. Providers bill images by resolution, not by base64 length,
+ * so counting the data URL text would hugely overstate it. This is a conservative flat cost.
+ */
+export const IMAGE_TOKEN_ESTIMATE = 1200;
+
+export function estimateContentTokens(content: ChatMessage['content']): number {
+  if (typeof content === 'string') return estimateTokens(content);
+  return content.reduce((sum, part) => sum + (part.type === 'text' ? estimateTokens(part.text) : IMAGE_TOKEN_ESTIMATE), 0);
+}
+
 export function estimateMessageTokens(message: ChatMessage): number {
-  return estimateTokens(message.content) + PER_MESSAGE_OVERHEAD;
+  return estimateContentTokens(message.content) + PER_MESSAGE_OVERHEAD;
 }
 
 export function estimateRequestTokens(messages: ChatMessage[]): number {

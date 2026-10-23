@@ -3,6 +3,15 @@ import { isValidBaseUrl, MODEL_PRESETS, PROVIDER_PRESETS } from '../lib/provider
 import { defaultFallbackFor, effectiveFallbacks, parseFallbackModels } from '../lib/fallback';
 import { DEFAULT_CONTEXT_BUDGET } from '../lib/context';
 import { uid } from '../lib/id';
+import {
+  agentRouterHint,
+  autoFillFallbackChain,
+  buildModelsRequest,
+  parseModelsResponse,
+  sortByEfficiency,
+  type ModelInfo,
+} from '../lib/models';
+import { extractErrorMessage } from '../lib/stream';
 import type { ModelRef, ProviderConfig, ProviderKind } from '../lib/types';
 
 interface SettingsPanelProps {
@@ -127,6 +136,148 @@ export function SettingsPanel({ providers, activeId, onChange, onActivate, onClo
         </div>
       </div>
     </div>
+  );
+}
+
+function FetchModelsPanel({
+  provider,
+  onChange,
+}: {
+  provider: ProviderConfig;
+  onChange: (patch: Partial<ProviderConfig>) => void;
+}) {
+  const [state, setState] = useState<{ status: 'idle' | 'loading' | 'error' | 'done'; models: ModelInfo[]; error: string }>({
+    status: 'idle',
+    models: [],
+    error: '',
+  });
+  const [picked, setPicked] = useState<Set<string>>(new Set());
+  const chip =
+    'min-h-9 rounded-full border px-2 py-0.5 text-xs md:min-h-0';
+
+  async function fetchModels() {
+    setState({ status: 'loading', models: [], error: '' });
+    try {
+      const req = buildModelsRequest(provider);
+      const res = await fetch(req.url, req.init);
+      if (!res.ok) {
+        const body = await res.text().catch(() => '');
+        const detail = extractErrorMessage(body);
+        const hint = agentRouterHint(provider.baseUrl, res.status);
+        throw new Error(`${res.status} ${res.statusText}: ${detail}${hint ? ` ${hint}` : ''}`);
+      }
+      const models = sortByEfficiency(parseModelsResponse(await res.json()));
+      setState({ status: 'done', models, error: '' });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      const isNetwork = err instanceof TypeError;
+      setState({
+        status: 'error',
+        models: [],
+        error: isNetwork
+          ? `Could not reach ${provider.baseUrl}/models. The browser blocked the request (CORS) or the network failed. ${message}`
+          : message,
+      });
+    }
+  }
+
+  const free = state.models.filter((m) => m.free);
+  const others = state.models.filter((m) => !m.free);
+  const fallbackChain = effectiveFallbacks(provider);
+  const pool = autoFillFallbackChain(state.models, provider.model);
+  const hasFree = state.models.some((m) => m.free);
+
+  function togglePick(id: string) {
+    setPicked((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  function addPickedToChain() {
+    const ids = [...picked];
+    onChange({ fallbackModels: parseFallbackModels([...fallbackChain, ...ids]) });
+    setPicked(new Set());
+  }
+
+  function autoFill() {
+    onChange({ fallbackModels: pool.slice(0, 8) });
+  }
+
+  function renderRow(m: ModelInfo) {
+    const on = picked.has(m.id);
+    const size = m.sizeB !== undefined ? `${m.sizeB}B` : '';
+    return (
+      <button
+        key={m.id}
+        type="button"
+        onClick={() => togglePick(m.id)}
+        aria-pressed={on}
+        className={`${chip} ${on ? 'border-indigo-600 bg-indigo-600 text-white' : 'border-slate-300 text-slate-600 dark:border-slate-700 dark:text-slate-300'}`}
+        title={[m.free ? 'free' : 'paid or unflagged', size, m.contextLength ? `${m.contextLength} ctx` : ''].filter(Boolean).join(' · ')}
+      >
+        {m.free && <span className="mr-1 text-emerald-600 dark:text-emerald-400">free</span>}
+        {m.id}
+        {size && <span className="ml-1 opacity-70">{size}</span>}
+      </button>
+    );
+  }
+
+  return (
+    <fieldset className="space-y-2 rounded-md border border-slate-200 p-2.5 text-xs text-slate-500 dark:border-slate-800">
+      <legend className="px-1">Models from this provider</legend>
+      <div className="flex flex-wrap items-center gap-2">
+        <button
+          type="button"
+          onClick={fetchModels}
+          disabled={state.status === 'loading'}
+          className="min-h-11 rounded-md border border-slate-300 px-3 disabled:opacity-50 md:min-h-0 md:py-1 dark:border-slate-700"
+        >
+          {state.status === 'loading' ? 'Fetching…' : 'Fetch models'}
+        </button>
+        {state.status === 'done' && (
+          <span>
+            {state.models.length} models{hasFree ? `, ${free.length} free` : ' (no free flags in this response)'}
+          </span>
+        )}
+      </div>
+      {state.status === 'error' && <p className="text-red-500">{state.error}</p>}
+      {state.status === 'done' && (
+        <>
+          <p>Tap models to select them, then add them as the model or to the fallback chain. Sorted most efficient first (smaller and faster names first).</p>
+          <div className="flex flex-wrap gap-1">{state.models.map(renderRow)}</div>
+          {hasFree && free.length > 0 && others.length > 0 && <p>{others.length} paid or unflagged models are listed above, un-marked.</p>}
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => onChange({ model: [...picked][0] ?? provider.model })}
+              disabled={picked.size !== 1}
+              className="min-h-11 rounded-md border border-slate-300 px-3 disabled:opacity-40 md:min-h-0 md:py-1 dark:border-slate-700"
+            >
+              Set as model
+            </button>
+            <button
+              type="button"
+              onClick={addPickedToChain}
+              disabled={picked.size === 0}
+              className="min-h-11 rounded-md border border-slate-300 px-3 disabled:opacity-40 md:min-h-0 md:py-1 dark:border-slate-700"
+            >
+              Add {picked.size || ''} to fallback chain
+            </button>
+            <button
+              type="button"
+              onClick={autoFill}
+              disabled={pool.length === 0}
+              className="min-h-11 rounded-md bg-indigo-600 px-3 text-white disabled:opacity-40 md:min-h-0 md:py-1"
+            >
+              Auto-fill fallback chain ({Math.min(pool.length, 8)})
+            </button>
+          </div>
+        </>
+      )}
+    </fieldset>
   );
 }
 
@@ -305,7 +456,8 @@ function ProviderForm({
           </button>
         ))}
       </div>
-      <FallbackField provider={provider} onChange={onChange} />
+      <FetchModelsPanel provider={provider} onChange={onChange} />
+      <FallbackField key={effectiveFallbacks(provider).join('|')} provider={provider} onChange={onChange} />
       <CrossProviderField provider={provider} providers={allProviders} onChange={onChange} />
       <label className="block text-xs text-slate-500">
         Context budget (estimated tokens sent per request)

@@ -1,4 +1,5 @@
 import { buildChatRequest } from './providers';
+import { agentRouterHint } from './models';
 import { parseStreamEvent } from './parse';
 import { createSSEParser } from './sse';
 import { computeTokensPerSecond, estimateTokens } from './stats';
@@ -41,7 +42,8 @@ export async function streamChat(
   const res = await fetch(url, { ...init, signal: opts.signal });
   if (!res.ok) {
     const body = await res.text().catch(() => '');
-    throw new Error(`${res.status} ${res.statusText}: ${extractErrorMessage(body)}`);
+    const hint = agentRouterHint(provider.baseUrl, res.status);
+    throw new Error(`${res.status} ${res.statusText}: ${extractErrorMessage(body)}${hint ? ` ${hint}` : ''}`);
   }
   if (!res.body) throw new Error('Provider response has no body to stream');
 

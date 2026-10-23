@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import type { AIFeature } from '../lib/types';
+import { useModal } from '../lib/useModal';
 
 interface FeatureHubProps {
   features: AIFeature[];
@@ -10,6 +11,7 @@ interface FeatureHubProps {
 const categories = ['All', 'Core', 'Productivity', 'Safety', 'Power user'] as const;
 
 export function FeatureHub({ features, onChange, onClose }: FeatureHubProps) {
+  const dialogRef = useModal(onClose);
   const [category, setCategory] = useState<(typeof categories)[number]>('All');
   const [query, setQuery] = useState('');
   const visible = useMemo(() => features.filter((feature) =>
@@ -24,7 +26,7 @@ export function FeatureHub({ features, onChange, onClose }: FeatureHubProps) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-slate-950/75 p-3 pt-8 backdrop-blur-sm md:p-10">
-      <section className="w-full max-w-3xl rounded-2xl border border-slate-700 bg-slate-900 text-slate-100 shadow-2xl">
+      <section ref={dialogRef} tabIndex={-1} role="dialog" aria-modal="true" aria-label="AI features" className="w-full max-w-3xl rounded-2xl border border-slate-700 bg-slate-900 text-slate-100 shadow-2xl">
         <header className="flex items-start justify-between gap-4 border-b border-slate-800 p-5 md:p-6">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-cyan-300">MercuReal intelligence</p>

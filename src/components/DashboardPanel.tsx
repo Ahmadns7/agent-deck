@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import type { Conversation, Workspace } from '../lib/types';
 import { uid } from '../lib/id';
+import { useModal } from '../lib/useModal';
 
 interface DashboardPanelProps {
   conversations: Conversation[];
@@ -10,6 +11,7 @@ interface DashboardPanelProps {
 }
 
 export function DashboardPanel({ conversations, workspaces, onWorkspacesChange, onClose }: DashboardPanelProps) {
+  const dialogRef = useModal(onClose);
   const [name, setName] = useState('');
   const [projectName, setProjectName] = useState('');
   const [activeWorkspaceId, setActiveWorkspaceId] = useState(workspaces[0]?.id ?? '');
@@ -43,7 +45,7 @@ export function DashboardPanel({ conversations, workspaces, onWorkspacesChange, 
 
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-slate-950/70 p-4 backdrop-blur-sm md:items-center">
-      <section className="w-full max-w-5xl rounded-2xl border border-white/10 bg-slate-900/95 p-5 text-slate-100 shadow-2xl md:p-7" aria-label="Dashboard">
+      <section ref={dialogRef} tabIndex={-1} role="dialog" aria-modal="true" className="w-full max-w-5xl rounded-2xl border border-white/10 bg-slate-900/95 p-5 text-slate-100 shadow-2xl md:p-7" aria-label="Dashboard">
         <div className="flex items-start justify-between gap-4">
           <div><p className="text-xs font-semibold uppercase tracking-[0.22em] text-cyan-300">MercuReal assistant</p><h2 className="mt-2 text-2xl font-semibold tracking-tight">Command dashboard</h2><p className="mt-1 text-sm text-slate-400">Monitor usage and shape your workspaces without leaving the conversation.</p></div>
           <button type="button" onClick={onClose} className="rounded-lg border border-white/10 px-3 py-2 text-sm text-slate-300 hover:bg-white/10">Close</button>

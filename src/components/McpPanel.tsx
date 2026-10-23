@@ -6,11 +6,13 @@ interface McpPanelProps {
   connections: RemoteMcpConnection[];
   onChange: (connections: RemoteMcpConnection[]) => void;
   onClose: () => void;
+  // Render inside the Settings hub without its own overlay or header.
+  embedded?: boolean;
 }
 
 const inputClass = 'mt-1 min-h-11 w-full rounded-md border border-slate-300 bg-white px-3 text-base dark:border-slate-700 dark:bg-slate-950';
 
-export function McpPanel({ connections, onChange, onClose }: McpPanelProps) {
+export function McpPanel({ connections, onChange, onClose, embedded }: McpPanelProps) {
   const [tab, setTab] = useState<'catalog' | 'connections'>('catalog');
   const [category, setCategory] = useState<string>('all');
   const [draft, setDraft] = useState({ name: '', url: '', authHeader: '' });
@@ -44,13 +46,14 @@ export function McpPanel({ connections, onChange, onClose }: McpPanelProps) {
     }
   }
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 md:items-center md:p-4" role="dialog" aria-modal="true" aria-label="MCP">
+  const panel = (
       <div className="flex max-h-[92dvh] w-full flex-col rounded-t-xl border border-slate-200 bg-white shadow-xl md:max-w-4xl md:rounded-lg dark:border-slate-800 dark:bg-slate-900">
-        <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3 dark:border-slate-800">
+        {!embedded && (
+          <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3 dark:border-slate-800">
           <div><h2 className="font-semibold">MCP</h2><p className="text-xs text-slate-500">Browse 50 web-dev MCP servers, or connect a remote one.</p></div>
           <button type="button" onClick={onClose} className="min-h-11 px-3 text-sm text-slate-500">Close</button>
         </div>
+        )}
         <div className="flex gap-2 border-b border-slate-200 px-4 py-2 dark:border-slate-800" role="tablist">
           <button type="button" role="tab" aria-selected={tab === 'catalog'} onClick={() => setTab('catalog')} className={`min-h-11 rounded-md px-3 text-sm ${tab === 'catalog' ? 'bg-slate-200 dark:bg-slate-800' : ''}`}>Catalog ({MCP_CATALOG.length})</button>
           <button type="button" role="tab" aria-selected={tab === 'connections'} onClick={() => setTab('connections')} className={`min-h-11 rounded-md px-3 text-sm ${tab === 'connections' ? 'bg-slate-200 dark:bg-slate-800' : ''}`}>Connections ({connections.length})</button>
@@ -116,6 +119,11 @@ export function McpPanel({ connections, onChange, onClose }: McpPanelProps) {
           </div>
         )}
       </div>
+  );
+  if (embedded) return panel;
+  return (
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 md:items-center md:p-4" role="dialog" aria-modal="true" aria-label="MCP">
+      {panel}
     </div>
   );
 }

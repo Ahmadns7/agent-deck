@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { ChatView } from './components/ChatView';
 import { Sidebar } from './components/Sidebar';
-import { SettingsPanel } from './components/SettingsPanel';
+import { SettingsHub, type HubTab } from './components/SettingsHub';
+import { DATA_PREFIX } from './lib/backup';
+import { normalizeFontSize, FONT_SIZES } from './lib/chatSettings';
 import { McpPanel } from './components/McpPanel';
 import { SkillsPanel } from './components/SkillsPanel';
 import { BUNDLED_SKILLS, SKILL_ENABLED_KEY, buildSkillPrompt, injectSkillPrompt, loadDisabledSkills, parseInvocations } from './lib/skills';
@@ -43,6 +45,9 @@ export default function App() {
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [streaming, setStreaming] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [settingsTab, setSettingsTab] = useState<HubTab>('providers');
+  const [systemPrompt, setSystemPrompt] = useState<string>(() => loadJSON<string>(STORAGE_KEYS.systemPrompt, ''));
+  const [fontSize, setFontSize] = useState(() => normalizeFontSize(loadJSON(STORAGE_KEYS.fontSize, 'medium')));
   const [showMcp, setShowMcp] = useState(false);
   const [showSkills, setShowSkills] = useState(false);
   const [skills, setSkills] = useState<AgentSkill[]>(() => loadJSON(STORAGE_KEYS.agentSkills, []));
@@ -63,6 +68,15 @@ export default function App() {
     document.documentElement.classList.toggle('dark', theme === 'dark');
     saveJSON(STORAGE_KEYS.theme, theme);
   }, [theme]);
+
+  useEffect(() => {
+    document.documentElement.style.fontSize = `${FONT_SIZES[fontSize]}px`;
+    saveJSON(STORAGE_KEYS.fontSize, fontSize);
+  }, [fontSize]);
+
+  useEffect(() => {
+    saveJSON(STORAGE_KEYS.systemPrompt, systemPrompt);
+  }, [systemPrompt]);
 
   useEffect(() => saveJSON(STORAGE_KEYS.providers, providers), [providers]);
   useEffect(() => saveJSON(STORAGE_KEYS.activeProvider, activeProvider?.id ?? ''), [activeProvider]);
@@ -175,6 +189,7 @@ export default function App() {
     history.splice(0, history.length, ...withSkills);
     // Enabled remote MCP tools are listed to the model in a system note.
     history.splice(0, history.length, ...injectSkillPrompt(history, buildToolsNote(mcpConnections)));
+    if (systemPrompt.trim()) history.unshift({ role: 'system', content: systemPrompt.trim() });
     history.push({ role: 'user', content: buildUserContent(text, sent) });
 
     // Only the request is trimmed. The stored conversation keeps every message.
@@ -278,6 +293,7 @@ export default function App() {
         }}
         onDelete={deleteConversation}
         onExport={exportConversation}
+        onSettings={() => { setShowHistory(false); setShowSettings(true); }}
       />
 
       <main className="flex min-w-0 flex-1 flex-col">
@@ -337,7 +353,7 @@ export default function App() {
             </button>
             <button
               type="button"
-              onClick={() => setShowSettings(true)}
+              onClick={() => { setSettingsTab('providers'); setShowSettings(true); }}
               className="min-h-11 rounded-md border border-slate-300 px-3 text-xs hover:bg-slate-100 md:min-h-0 md:px-2.5 md:py-1 dark:border-slate-700 dark:hover:bg-slate-800"
             >
               Providers
@@ -375,12 +391,36 @@ export default function App() {
       {showMcp && <McpPanel connections={mcpConnections} onChange={setMcpConnections} onClose={() => setShowMcp(false)} />}
 
       {showSettings && (
-        <SettingsPanel
-          providers={providers}
-          activeId={activeProvider?.id ?? ''}
-          onChange={saveProviders}
-          onActivate={setActiveProviderId}
+        <SettingsHub
+          tab={settingsTab}
+          onTabChange={setSettingsTab}
           onClose={() => setShowSettings(false)}
+          providers={providers}
+          activeProviderId={activeProvider?.id ?? ''}
+          onProvidersChange={saveProviders}
+          onActivate={setActiveProviderId}
+          skills={skills}
+          onSkillsChange={setSkills}
+          bundledSkills={BUNDLED_SKILLS}
+          disabledSkills={disabledSkills}
+          onDisabledSkillsChange={(next) => { setDisabledSkills(next); localStorage.setItem(SKILL_ENABLED_KEY, JSON.stringify(next)); }}
+          mcpContent={<McpPanel embedded connections={mcpConnections} onChange={setMcpConnections} onClose={() => setShowSettings(false)} />}
+          systemPrompt={systemPrompt}
+          onSystemPromptChange={setSystemPrompt}
+          theme={theme}
+          onThemeChange={setTheme}
+          fontSize={fontSize}
+          onFontSizeChange={setFontSize}
+          getStorage={() => Object.fromEntries(Object.keys(localStorage).map((k) => [k, localStorage.getItem(k) ?? '']))}
+          setStorage={(entries) => {
+            for (const k of Object.keys(localStorage)) if (k.startsWith(DATA_PREFIX)) localStorage.removeItem(k);
+            for (const [k, v] of Object.entries(entries)) localStorage.setItem(k, v);
+            window.location.reload();
+          }}
+          clearStorage={() => {
+            for (const k of Object.keys(localStorage)) if (k.startsWith(DATA_PREFIX)) localStorage.removeItem(k);
+            window.location.reload();
+          }}
         />
       )}
     </div>

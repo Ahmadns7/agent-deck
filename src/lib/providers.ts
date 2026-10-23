@@ -80,8 +80,9 @@ export function buildChatRequest(provider: ProviderConfig, messages: ChatMessage
       .join('\n\n');
     const body: Record<string, unknown> = {
       model: provider.model,
-      max_tokens: 1024,
+      max_tokens: provider.maxTokens ?? 1024,
       stream: true,
+      ...(provider.temperature !== undefined ? { temperature: Math.min(1, provider.temperature) } : {}),
       messages: messages
         .filter((m) => m.role !== 'system')
         .map(({ role, content }) => ({ role, content: toAnthropicContent(content) })),
@@ -118,6 +119,8 @@ export function buildChatRequest(provider: ProviderConfig, messages: ChatMessage
         messages: messages.map(({ role, content }) => ({ role, content })),
         stream: true,
         stream_options: { include_usage: true },
+        ...(provider.temperature !== undefined ? { temperature: provider.temperature } : {}),
+        ...(provider.maxTokens !== undefined ? { max_tokens: provider.maxTokens } : {}),
       }),
     },
   };

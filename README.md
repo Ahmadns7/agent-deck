@@ -62,6 +62,22 @@ Browsers block cross-origin requests unless the provider allows them. OpenAI and
 - Do not commit `.env` files or keys. `.gitignore` excludes `.env*` (except `.env.example`).
 - The app never sends your keys or messages anywhere except the endpoint you configured.
 
+## Settings
+
+Open Settings from the button at the bottom of the left sidebar (on phones, open the sidebar with the menu button first). On phones it opens as a full-screen sheet; on desktop it is a centered panel.
+
+Tabs:
+- Providers: API keys, base URLs, model fetch, and presets.
+- Skills: enable or disable the bundled skills.
+- MCP: browse the bundled web-dev MCP catalog and manage remote connections.
+- Chat: fallback chain, system prompt default, temperature and max tokens.
+- Appearance: light or dark theme and font size.
+- Data: export every chat and setting as JSON, import a backup, or clear all data. API keys are left out of exports unless you tick the box.
+
+![Settings hub on a phone](docs/settings-hub-mobile.png)
+
+![Settings Data tab on a phone](docs/settings-data-mobile.png)
+
 ## Skills
 
 agent-deck ships 50 curated web-development skills in `src/skills/`. A skill is a short prompt of rules for one topic. Invoke it in chat to steer the model for that conversation.

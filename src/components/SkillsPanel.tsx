@@ -10,6 +10,8 @@ interface SkillsPanelProps {
   disabled: string[];
   onDisabledChange: (next: string[]) => void;
   onClose: () => void;
+  /** Render inside the Settings hub without its own overlay or header. */
+  embedded?: boolean;
 }
 
 function rawCandidates(url: URL) {
@@ -24,7 +26,7 @@ function rawCandidates(url: URL) {
   ];
 }
 
-export function SkillsPanel({ skills, onChange, bundled, disabled, onDisabledChange, onClose }: SkillsPanelProps) {
+export function SkillsPanel({ skills, onChange, bundled, disabled, onDisabledChange, onClose, embedded }: SkillsPanelProps) {
   const [url, setUrl] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -59,9 +61,10 @@ export function SkillsPanel({ skills, onChange, bundled, disabled, onDisabledCha
     finally { setBusy(false); }
   }
 
-  return <div className="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/40 backdrop-blur-sm md:items-center md:p-4" role="dialog" aria-modal="true" aria-label="Agent skills">
+  const wrap = (node: React.ReactNode) => embedded ? <>{node}</> : <div className="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/40 backdrop-blur-sm md:items-center md:p-4" role="dialog" aria-modal="true" aria-label="Agent skills">{node}</div>;
+  return wrap(
     <div className="flex max-h-[92dvh] w-full max-w-2xl flex-col rounded-t-2xl border border-white/60 bg-white/85 shadow-2xl backdrop-blur-xl md:max-h-[88vh] md:rounded-2xl dark:border-white/10 dark:bg-slate-900/85">
-      <div className="flex shrink-0 items-center justify-between border-b border-slate-200/70 px-4 py-3 dark:border-white/10"><div><h2 className="font-semibold">Agent skills</h2><p className="text-xs text-slate-500">Install real skill instructions from GitHub.</p></div><button type="button" onClick={onClose} className="min-h-11 px-3 text-sm text-slate-500">Close</button></div>
+      {!embedded && <div className="flex shrink-0 items-center justify-between border-b border-slate-200/70 px-4 py-3 dark:border-white/10"><div><h2 className="font-semibold">Agent skills</h2><p className="text-xs text-slate-500">Install real skill instructions from GitHub.</p></div><button type="button" onClick={onClose} className="min-h-11 px-3 text-sm text-slate-500">Close</button></div>}
       <div className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain p-4 md:p-5">
         <div>
           <h3 className="mb-2 text-sm font-semibold">Bundled web-dev skills ({bundled.length})</h3>
@@ -88,5 +91,5 @@ export function SkillsPanel({ skills, onChange, bundled, disabled, onDisabledCha
         <div className="space-y-2">{skills.length === 0 ? <p className="text-sm text-slate-500">No skills installed yet.</p> : skills.map((skill) => <div key={skill.id} className="flex items-start justify-between gap-3 rounded-md border border-slate-200 p-3 dark:border-slate-800"><div className="min-w-0"><p className="font-medium">{skill.name}</p><p className="truncate text-xs text-slate-500">{skill.description}</p></div><button type="button" onClick={() => onChange(skills.filter((item) => item.id !== skill.id))} className="text-xs text-red-500">Remove</button></div>)}</div>
       </div>
     </div>
-  </div>;
+  );
 }

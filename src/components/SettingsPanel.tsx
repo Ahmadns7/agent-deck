@@ -15,6 +15,8 @@ import { extractErrorMessage } from '../lib/stream';
 import type { ModelRef, ProviderConfig, ProviderKind } from '../lib/types';
 
 interface SettingsPanelProps {
+  /** Render as a plain section inside the Settings hub instead of a modal overlay. */
+  embedded?: boolean;
   providers: ProviderConfig[];
   activeId: string;
   onChange: (next: ProviderConfig[]) => void;
@@ -22,7 +24,7 @@ interface SettingsPanelProps {
   onClose: () => void;
 }
 
-export function SettingsPanel({ providers, activeId, onChange, onActivate, onClose }: SettingsPanelProps) {
+export function SettingsPanel({ providers, activeId, onChange, onActivate, onClose, embedded }: SettingsPanelProps) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const editing = providers.find((p) => p.id === editingId);
 
@@ -50,14 +52,9 @@ export function SettingsPanel({ providers, activeId, onChange, onActivate, onClo
 
   // Phones: a full-width bottom sheet capped at 92dvh so it never sits under the browser chrome.
   // md and up: the centered modal, unchanged.
-  return (
-    <div
-      className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 md:items-center md:p-4"
-      role="dialog"
-      aria-modal="true"
-      aria-label="Providers"
-    >
-      <div className="flex max-h-[92dvh] w-full flex-col rounded-t-2xl border border-white/60 bg-white/85 shadow-2xl backdrop-blur-xl md:max-h-[90vh] md:max-w-2xl md:rounded-2xl dark:border-white/10 dark:bg-slate-900/85">
+  const body = (
+    <>
+        {!embedded && (
         <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3 md:px-5 dark:border-slate-800">
           <h2 className="font-semibold">Providers</h2>
           <button
@@ -68,6 +65,7 @@ export function SettingsPanel({ providers, activeId, onChange, onActivate, onClo
             Close
           </button>
         </div>
+        )}
 
         <div className="grid min-h-0 flex-1 gap-4 overflow-y-auto p-4 md:grid-cols-[14rem_1fr] md:p-5">
           <div className="min-w-0 space-y-2">
@@ -134,6 +132,18 @@ export function SettingsPanel({ providers, activeId, onChange, onActivate, onClo
             </p>
           </div>
         </div>
+    </>
+  );
+  if (embedded) return body;
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 md:items-center md:p-4"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Providers"
+    >
+      <div className="flex max-h-[92dvh] w-full flex-col rounded-t-2xl border border-white/60 bg-white/85 shadow-2xl backdrop-blur-xl md:max-h-[90vh] md:max-w-2xl md:rounded-2xl dark:border-white/10 dark:bg-slate-900/85">
+        {body}
       </div>
     </div>
   );
@@ -281,7 +291,7 @@ function FetchModelsPanel({
   );
 }
 
-function FallbackField({
+export function FallbackField({
   provider,
   onChange,
 }: {
@@ -315,7 +325,7 @@ function FallbackField({
   );
 }
 
-function CrossProviderField({
+export function CrossProviderField({
   provider,
   providers,
   onChange,

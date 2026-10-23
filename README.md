@@ -267,3 +267,20 @@ Using the tools in chat. Enabled connections with discovered tools are listed to
 CORS. The remote server must send CORS headers that allow the agent-deck origin. If it does not, the browser blocks the request and agent-deck shows a CORS error. Servers that do not allow browser origins cannot be used from agent-deck.
 
 Keys and privacy. Auth headers are stored in localStorage on this device, unencrypted, like other keys in agent-deck. Use keys with spending limits. Only the configured endpoint receives your request.
+
+## Features (AI studio)
+
+Logic in place and covered by tests (src/lib/*.test.ts):
+
+- PWA: installable manifest, service worker offline app shell (API calls always go to the network)
+- Markdown parser (headings, lists, quotes, http links, fenced code that tolerates an unclosed fence while streaming) and a syntax-highlighting tokenizer
+- Estimated cost calculator with an editable per-model pricing table (estimates, not billing)
+- Fuzzy command palette search and the keyboard shortcut list
+- Prompt library helpers: {{variable}} extraction and fill, /prompt command parsing
+- Stop-token cleanup for streamed text
+- Reply variants (A/B swipe), auto-title from the first exchange
+- Message search across conversations, conversation sort (pinned, favorite, recent, title), tags
+- Read-only snapshot encode/decode (compressed #snap= hash), export text wrapping
+- Voice input and output helpers (Web Speech API, SpeechSynthesis)
+
+Not yet wired into the chat UI: the helpers above are not yet hooked into the visible interface.

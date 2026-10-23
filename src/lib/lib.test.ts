@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { createSSEParser, type SSEEvent } from './sse';
 import { computeTokensPerSecond, estimateTokens, formatDuration } from './stats';
-import { buildChatRequest, isValidBaseUrl, normalizeBaseUrl } from './providers';
+import { buildChatRequest, isValidBaseUrl, normalizeBaseUrl, PROVIDER_PRESETS } from './providers';
 import { parseStreamEvent } from './parse';
 import type { ProviderConfig } from './types';
 
@@ -83,6 +83,40 @@ describe('providers', () => {
     const body = JSON.parse(init.body as string);
     expect(body.system).toBe('be brief');
     expect(body.messages).toEqual([{ role: 'user', content: 'hi' }]);
+  });
+
+  it('builds an Ollama Cloud request with a bearer key and no extra headers', () => {
+    const cloud: ProviderConfig = { ...openai, name: 'Ollama Cloud', baseUrl: 'https://ollama.com/v1', model: 'gpt-oss:120b' };
+    const { url, init } = buildChatRequest(cloud, [{ role: 'user', content: 'hi' }]);
+    expect(url).toBe('https://ollama.com/v1/chat/completions');
+    const headers = init.headers as Record<string, string>;
+    expect(headers.authorization).toBe('Bearer sk-test');
+    expect(headers['HTTP-Referer']).toBeUndefined();
+  });
+
+  it('adds OpenRouter attribution headers and the bearer key', () => {
+    const or: ProviderConfig = { ...openai, name: 'OpenRouter', baseUrl: 'https://openrouter.ai/api/v1', model: 'openrouter/free' };
+    const { url, init } = buildChatRequest(or, [{ role: 'user', content: 'hi' }]);
+    expect(url).toBe('https://openrouter.ai/api/v1/chat/completions');
+    const headers = init.headers as Record<string, string>;
+    expect(headers.authorization).toBe('Bearer sk-test');
+    expect(headers['HTTP-Referer']).toBe('https://github.com/Ahmadns7/agent-deck');
+    expect(headers['X-OpenRouter-Title']).toBe('agent-deck');
+  });
+
+  it('keeps the local Ollama preset keyless at localhost and does not send attribution headers', () => {
+    const local = PROVIDER_PRESETS.find((p) => p.name === 'Ollama (local)')!;
+    const { url, init } = buildChatRequest({ ...local, id: 'x', apiKey: '' }, [{ role: 'user', content: 'hi' }]);
+    expect(url).toBe('http://localhost:11434/v1/chat/completions');
+    const headers = init.headers as Record<string, string>;
+    expect(headers.authorization).toBeUndefined();
+    expect(headers['X-OpenRouter-Title']).toBeUndefined();
+  });
+
+  it('ships presets for the three new providers', () => {
+    const names = PROVIDER_PRESETS.map((p) => p.name);
+    expect(names).toEqual(expect.arrayContaining(['Ollama Cloud', 'OpenRouter', 'AgentRouter']));
+    expect(PROVIDER_PRESETS.find((p) => p.name === 'AgentRouter')!.baseUrl).toBe('https://agentrouter.org/v1');
   });
 
   it('refuses to build a request for an invalid base URL', () => {

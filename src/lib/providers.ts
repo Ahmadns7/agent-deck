@@ -26,7 +26,27 @@ export const PROVIDER_PRESETS: ProviderPreset[] = [
   { name: 'Groq', kind: 'openai', baseUrl: 'https://api.groq.com/openai/v1', model: 'llama-3.3-70b-versatile' },
   { name: 'Mistral', kind: 'openai', baseUrl: 'https://api.mistral.ai/v1', model: 'mistral-small-latest' },
   { name: 'DeepSeek', kind: 'openai', baseUrl: 'https://api.deepseek.com/v1', model: 'deepseek-chat' },
+  // Direct cloud API (docs.ollama.com/api/authentication): Bearer key, OpenAI-compatible at /v1.
+  { name: 'Ollama Cloud', kind: 'openai', baseUrl: 'https://ollama.com/v1', model: 'gpt-oss:120b' },
+  // OpenAI-compatible, base url per openrouter.ai/docs/quickstart.
+  { name: 'OpenRouter', kind: 'openai', baseUrl: 'https://openrouter.ai/api/v1', model: 'openrouter/free' },
+  // Custom OpenAI-compatible endpoint from agentrouter.org's own docs (pi integration page). Unverified against an official API reference.
+  { name: 'AgentRouter', kind: 'openai', baseUrl: 'https://agentrouter.org/v1', model: 'deepseek-v4-flash' },
 ];
+
+/** Optional attribution headers OpenRouter documents for leaderboards; not required for auth. */
+export const OPENROUTER_ATTRIBUTION_HEADERS: Record<string, string> = {
+  'HTTP-Referer': 'https://github.com/Ahmadns7/agent-deck',
+  'X-OpenRouter-Title': 'agent-deck',
+};
+
+export function isOpenRouterUrl(url: string): boolean {
+  try {
+    return new URL(normalizeBaseUrl(url)).hostname === 'openrouter.ai';
+  } catch {
+    return false;
+  }
+}
 
 export function normalizeBaseUrl(url: string): string {
   return url.trim().replace(/\/+$/, '');
@@ -85,6 +105,7 @@ export function buildChatRequest(provider: ProviderConfig, messages: ChatMessage
   }
 
   const headers: Record<string, string> = { 'content-type': 'application/json' };
+  if (isOpenRouterUrl(base)) Object.assign(headers, OPENROUTER_ATTRIBUTION_HEADERS);
   if (provider.apiKey) headers.authorization = `Bearer ${provider.apiKey}`;
 
   return {
@@ -104,8 +125,8 @@ export function buildChatRequest(provider: ProviderConfig, messages: ChatMessage
 
 export interface ModelPreset {
   id: string;
-  provider: 'Groq' | 'Gemini';
-  tier: 'free';
+  provider: 'Groq' | 'Gemini' | 'OpenRouter' | 'Ollama Cloud';
+  tier: 'free' | 'cloud';
   /** Docs page the ID was verified against. */
   source: string;
 }
@@ -125,4 +146,10 @@ export const MODEL_PRESETS: ModelPreset[] = [
   { id: 'gemini-2.5-flash', provider: 'Gemini', tier: 'free', source: GEMINI_DOCS },
   { id: 'gemini-2.5-flash-lite', provider: 'Gemini', tier: 'free', source: GEMINI_DOCS },
   { id: 'gemini-2.5-pro', provider: 'Gemini', tier: 'free', source: GEMINI_DOCS },
+  // Ollama Cloud model names as shown in the API docs (docs.ollama.com/api/authentication, /cloud).
+  { id: 'gpt-oss:120b', provider: 'Ollama Cloud', tier: 'cloud', source: 'docs.ollama.com/api/authentication' },
+  { id: 'gemma4:31b', provider: 'Ollama Cloud', tier: 'cloud', source: 'docs.ollama.com/cloud' },
+  // OpenRouter: openrouter/free is the documented free router (openrouter.ai/openrouter/free).
+  { id: 'openrouter/free', provider: 'OpenRouter', tier: 'free', source: 'openrouter.ai/openrouter/free' },
+  { id: 'openai/gpt-oss-20b:free', provider: 'OpenRouter', tier: 'free', source: 'third-party guide (UCSF LMA), not checked on openrouter.ai' },
 ];

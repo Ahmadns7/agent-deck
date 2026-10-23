@@ -297,7 +297,7 @@ function ProviderForm({
           <button
             key={`${m.provider}-${m.id}`}
             type="button"
-            title={`${m.provider} free tier · ${m.source}`}
+            title={`${m.provider} ${m.tier === 'free' ? 'free tier' : 'cloud'} · ${m.source}`}
             onClick={() => onChange({ model: m.id })}
             className={`rounded-full border px-2 py-0.5 text-xs ${provider.model === m.id ? 'border-slate-900 bg-slate-900 text-white' : 'border-slate-300 text-slate-600'}`}
           >

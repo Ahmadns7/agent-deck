@@ -290,3 +290,20 @@ Logic only, not wired into the UI yet (covered by tests in src/lib):
 
 - Estimated cost calculator and the editable per-model pricing table (src/lib/pricing.ts). It is not shown anywhere in the app yet.
 
+
+## Android app
+
+The `android/` folder builds `MercuReal Assistant` (package `com.mercureal.assistant`, version 1.0.0) as an Android APK. The APK is a thin WebView shell that loads the deployed web app at `https://agent-deck-seven.vercel.app/`. It does not bundle the app's code, so updates to the site reach installed copies without a new APK.
+
+- The shell only allows navigation within the app's own host. Other links open in the phone's browser.
+- Cleartext HTTP is disabled. The only permissions are INTERNET and ACCESS_NETWORK_STATE.
+- API keys, chat history and settings stay in the WebView's origin storage on the device, the same as in a browser tab. They are not sent to the APK build or to any server of this project.
+
+Build (needs JDK 17+ and an Android SDK with platform android-35 and build-tools 35.0.0 or newer):
+
+```
+cd android
+ANDROID_HOME=/path/to/android-sdk ./build.sh
+```
+
+The output is `android/build/mercureal-assistant-1.0.0.apk`. By default it is signed with the debug key, which Android shows a "unknown developer" warning for. Set `SIGN_KEYSTORE`, `SIGN_ALIAS` and `SIGN_PASS` to sign with a release key. Keep that key out of the repo.

@@ -1,4 +1,4 @@
-import { useEffect, useRef, type KeyboardEvent } from 'react';
+import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
 import type { StoredMessage } from '../lib/types';
 
 interface ChatViewProps {
@@ -24,11 +24,15 @@ export function ChatView({
   mcpTools,
   providerReady,
 }: ChatViewProps) {
-  const endRef = useRef<HTMLDivElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
 
+  // Scroll only the chat container (not the page) so fixed chrome never shifts; re-runs on every streamed chunk.
+  const last = messages[messages.length - 1];
+  const lastLength = last ? last.content.length : 0;
   useEffect(() => {
-    endRef.current?.scrollIntoView({ block: 'end' });
-  }, [messages]);
+    const el = scrollRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
+  }, [messages.length, lastLength, streaming]);
 
   function onKeyDown(e: KeyboardEvent<HTMLTextAreaElement>) {
     if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing && e.keyCode !== 229) {
@@ -39,7 +43,7 @@ export function ChatView({
 
   return (
     <section className="flex min-w-0 flex-1 flex-col">
-      <div className="min-w-0 flex-1 space-y-3 overflow-y-auto px-3 py-4 md:space-y-4 md:px-6 md:py-6">
+      <div ref={scrollRef} className="min-h-0 min-w-0 flex-1 space-y-3 overflow-y-auto overscroll-contain px-3 py-4 md:space-y-4 md:px-6 md:py-6">
         {messages.length === 0 && (
           <div className="mx-auto mt-10 max-w-md px-2 text-center text-sm text-slate-500 md:mt-16 md:px-0">
             <p className="font-medium text-slate-700 dark:text-slate-300">Start a conversation</p>
@@ -56,7 +60,6 @@ export function ChatView({
         {messages.map((m) => (
           <Bubble key={m.id} message={m} streaming={streaming} />
         ))}
-        <div ref={endRef} />
       </div>
 
       <form
@@ -97,10 +100,34 @@ export function ChatView({
   );
 }
 
+function CopyButton({ text }: { text: string }) {
+  const [copied, setCopied] = useState(false);
+  async function copy() {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      setCopied(false);
+    }
+  }
+  return (
+    <button
+      type="button"
+      onClick={copy}
+      aria-label={copied ? 'Copied reply' : 'Copy reply as text'}
+      className="min-h-11 rounded-md px-2 text-xs text-slate-500 hover:bg-slate-100 md:min-h-0 md:py-0.5 dark:hover:bg-slate-800"
+    >
+      {copied ? 'Copied ✓' : 'Copy'}
+    </button>
+  );
+}
+
 function Bubble({ message, streaming }: { message: StoredMessage; streaming: boolean }) {
   const isUser = message.role === 'user';
   const pending = !isUser && streaming && !message.stats && !message.error && message.content === '';
   const live = !isUser && streaming && !message.stats && !message.error;
+  const canCopy = !isUser && !pending && message.content.length > 0;
 
   return (
     <div className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}>
@@ -125,6 +152,11 @@ function Bubble({ message, streaming }: { message: StoredMessage; streaming: boo
           <p className="mt-2 text-xs text-red-500" role="alert">
             Error: {message.error}
           </p>
+        )}
+        {canCopy && !live && (
+          <div className="mt-1 flex justify-end">
+            <CopyButton text={message.content} />
+          </div>
         )}
       </div>
     </div>

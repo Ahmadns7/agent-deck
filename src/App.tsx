@@ -203,7 +203,7 @@ export default function App() {
   const stats = lastStatsMessage(current)?.stats;
 
   return (
-    <div className="flex h-screen overflow-hidden bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100">
+    <div className="flex h-[100dvh] overflow-hidden bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100">
       {showHistory && (
         <div
           className="fixed inset-0 z-30 bg-black/50 md:hidden"
@@ -232,7 +232,7 @@ export default function App() {
       />
 
       <main className="flex min-w-0 flex-1 flex-col">
-        <header className="flex items-center gap-2 border-b border-slate-200 px-3 py-2 md:justify-between md:px-5 md:py-3 dark:border-slate-800">
+        <header className="sticky top-0 z-20 flex min-w-0 items-center gap-2 border-b border-slate-200 bg-slate-50 px-3 py-2 md:justify-between md:px-5 md:py-3 dark:border-slate-800 dark:bg-slate-950">
           <button
             type="button"
             onClick={() => setShowHistory(true)}
@@ -247,7 +247,7 @@ export default function App() {
               {activeProvider ? `${activeProvider.name} · ${activeProvider.model}` : 'No provider'}
             </p>
           </div>
-          <div className="flex shrink-0 items-center gap-1 md:gap-2">
+          <div className="flex min-w-0 max-w-[60%] shrink items-center gap-1 overflow-x-auto whitespace-nowrap md:max-w-none md:shrink-0 md:gap-2 [&::-webkit-scrollbar]:hidden [scrollbar-width:none]">
             <button
               type="button"
               onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}

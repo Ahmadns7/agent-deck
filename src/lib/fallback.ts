@@ -1,5 +1,6 @@
 /** Models tried after the primary model when the provider rejects a request for size or rate. */
-export const DEFAULT_FALLBACK_MODELS = ['openai/gpt-oss-20b', 'llama-3.1-8b-instant'];
+// llama-3.1-8b-instant was retired on Groq (Aug 16, 2026); qwen3.8-27b is the alternative (listed in the docs model table as preview; not API-verified).
+export const DEFAULT_FALLBACK_MODELS = ['openai/gpt-oss-20b', 'openai/gpt-oss-120b', 'qwen/qwen3.8-27b'];
 
 /**
  * Fallback list used when the provider has none saved. Only Groq gets defaults, because

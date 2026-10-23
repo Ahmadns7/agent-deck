@@ -47,7 +47,8 @@ describe('modelAttemptOrder', () => {
 
 describe('defaults', () => {
   it('uses the Groq fallback chain only for Groq base urls', () => {
-    expect(DEFAULT_FALLBACK_MODELS).toEqual(['openai/gpt-oss-20b', 'llama-3.1-8b-instant']);
+    expect(DEFAULT_FALLBACK_MODELS).toEqual(['openai/gpt-oss-20b', 'openai/gpt-oss-120b', 'qwen/qwen3.8-27b']);
+    expect(DEFAULT_FALLBACK_MODELS).not.toContain('llama-3.1-8b-instant');
     expect(defaultFallbackFor({ baseUrl: 'https://api.groq.com/openai/v1' })).toEqual(DEFAULT_FALLBACK_MODELS);
     expect(defaultFallbackFor({ baseUrl: 'https://api.openai.com/v1' })).toEqual([]);
     expect(defaultFallbackFor({ baseUrl: 'http://localhost:11434/v1' })).toEqual([]);

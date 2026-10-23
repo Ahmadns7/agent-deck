@@ -112,6 +112,15 @@ function Bubble({ message, streaming }: { message: StoredMessage; streaming: boo
         } ${live ? 'caret' : ''}`}
       >
         {pending ? <span className="text-slate-500">Thinking…</span> : message.content}
+        {!isUser && message.trimmedCount !== undefined && (
+          <p className="mt-2 text-xs text-slate-500">older messages trimmed for context limit ({message.trimmedCount} dropped)</p>
+        )}
+        {!isUser && message.model && message.stats && (
+          <p className="mt-2 text-xs text-slate-500">
+            answered by {message.model}
+            {message.fellBackFrom ? ` (fell back from ${message.fellBackFrom} after a rate or size limit)` : ''}
+          </p>
+        )}
         {message.error && (
           <p className="mt-2 text-xs text-red-500" role="alert">
             Error: {message.error}

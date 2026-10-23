@@ -25,6 +25,12 @@ export interface StoredMessage {
   content: string;
   stats?: ResponseStats;
   error?: string;
+  /** Model that actually produced this reply (set when a reply finishes). */
+  model?: string;
+  /** Primary model that was rate-limited or rejected, when a fallback answered. */
+  fellBackFrom?: string;
+  /** Number of older messages dropped from the request sent to the provider. */
+  trimmedCount?: number;
 }
 
 export interface Conversation {
@@ -92,4 +98,8 @@ export interface ProviderConfig {
   model: string;
   /** Stored only in localStorage on this device. */
   apiKey: string;
+  /** Models tried in order when the primary returns 429/413. Undefined means the built-in defaults. */
+  fallbackModels?: string[];
+  /** Max estimated tokens sent per request. Undefined means the default budget. */
+  contextBudget?: number;
 }

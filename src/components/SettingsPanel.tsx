@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import { isValidBaseUrl, PROVIDER_PRESETS } from '../lib/providers';
+import { defaultFallbackFor, effectiveFallbacks, parseFallbackModels } from '../lib/fallback';
+import { DEFAULT_CONTEXT_BUDGET } from '../lib/context';
 import { uid } from '../lib/id';
 import type { ProviderConfig, ProviderKind } from '../lib/types';
 
@@ -127,6 +129,40 @@ export function SettingsPanel({ providers, activeId, onChange, onActivate, onClo
   );
 }
 
+function FallbackField({
+  provider,
+  onChange,
+}: {
+  provider: ProviderConfig;
+  onChange: (patch: Partial<ProviderConfig>) => void;
+}) {
+  const shown = effectiveFallbacks(provider);
+  const [text, setText] = useState(shown.join(', '));
+  const input =
+    'min-h-11 w-full min-w-0 rounded-md border border-slate-300 bg-white px-2.5 py-1.5 text-base outline-none focus:border-indigo-500 md:min-h-0 md:text-sm dark:border-slate-700 dark:bg-slate-950';
+
+  return (
+    <label className="block text-xs text-slate-500">
+      Fallback models (comma-separated, tried in order on 429 / 413 / rate limit)
+      <input
+        className={input}
+        autoCapitalize="none"
+        autoCorrect="off"
+        spellCheck={false}
+        value={text}
+        onChange={(e) => {
+          setText(e.target.value);
+          onChange({ fallbackModels: parseFallbackModels(e.target.value) });
+        }}
+        onBlur={() => setText(parseFallbackModels(text).join(', '))}
+      />
+      {!provider.fallbackModels && defaultFallbackFor(provider).length > 0 && (
+        <span className="text-slate-500">Showing Groq defaults. Edit to save your own list.</span>
+      )}
+    </label>
+  );
+}
+
 function ProviderForm({
   provider,
   onChange,
@@ -181,6 +217,21 @@ function ProviderForm({
           spellCheck={false}
           value={provider.model}
           onChange={(e) => onChange({ model: e.target.value })}
+        />
+      </label>
+      <FallbackField provider={provider} onChange={onChange} />
+      <label className="block text-xs text-slate-500">
+        Context budget (estimated tokens sent per request)
+        <input
+          className={input}
+          type="number"
+          min={500}
+          step={500}
+          value={provider.contextBudget ?? DEFAULT_CONTEXT_BUDGET}
+          onChange={(e) => {
+            const n = Number(e.target.value);
+            onChange({ contextBudget: Number.isFinite(n) && n > 0 ? n : undefined });
+          }}
         />
       </label>
       <label className="block text-xs text-slate-500">

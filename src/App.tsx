@@ -13,6 +13,8 @@ import { PROVIDER_PRESETS } from './lib/providers';
 import { lastStatsMessage, titleFrom, updateConversation, updateMessage } from './lib/conversations';
 import { loadJSON, saveJSON, STORAGE_KEYS } from './lib/storage';
 import { streamChat } from './lib/stream';
+import { trimToBudget, DEFAULT_CONTEXT_BUDGET } from './lib/context';
+import { effectiveFallbacks, modelAttemptOrder, runWithFallback } from './lib/fallback';
 import { uid } from './lib/id';
 import type { AIFeature, AgentSkill, ChatMessage, Conversation, ProviderConfig, StoredMessage, Workspace } from './lib/types';
 
@@ -133,24 +135,47 @@ export default function App() {
       .map((m) => ({ role: m.role, content: m.content }));
     const enabledFeatures = aiFeatures.filter((feature) => feature.enabled);
     if (skills.length > 0 || enabledFeatures.length > 0) {
-      const featureInstructions = enabledFeatures.map((feature) => `- ${feature.name}: ${feature.description}`).join('\n');
-      history.unshift({ role: 'system', content: `You are MercuReal assistant. Apply these enabled behaviors when relevant:\n${featureInstructions}\n\nInstalled skills:\n${skills.map((skill) => `## ${skill.name}\n${skill.instructions}`).join('\n\n')}` });
+      const featureInstructions = enabledFeatures.map((feature) => `- ${feature.name}: ${feature.description}`).join('\\n');
+      history.unshift({ role: 'system', content: `You are MercuReal assistant. Apply these enabled behaviors when relevant:\\n${featureInstructions}\\n\\nInstalled skills:\\n${skills.map((skill) => `## ${skill.name}\\n${skill.instructions}`).join('\\n\\n')}` });
     }
     history.push({ role: 'user', content: text });
+
+    // Only the request is trimmed. The stored conversation keeps every message.
+    const trim = trimToBudget(history, activeProvider.contextBudget ?? DEFAULT_CONTEXT_BUDGET);
+    const requestMessages = trim.messages;
+    const models = modelAttemptOrder(activeProvider.model, effectiveFallbacks(activeProvider));
 
     const controller = new AbortController();
     abortRef.current = controller;
 
     try {
-      const result = await streamChat(activeProvider, history, {
-        signal: controller.signal,
-        onDelta: (delta) =>
-          setConversations((list) =>
-            updateMessage(list, convId, assistantId, (m) => ({ ...m, content: m.content + delta })),
-          ),
-      });
+      const outcome = await runWithFallback(
+        models,
+        (model) =>
+          streamChat({ ...activeProvider, model }, requestMessages, {
+            signal: controller.signal,
+            onDelta: (delta) =>
+              setConversations((list) =>
+                updateMessage(list, convId, assistantId, (m) => ({ ...m, content: m.content + delta })),
+              ),
+          }),
+        () => controller.signal.aborted,
+      );
+      if (!outcome.ok) {
+        const last = outcome.failures[outcome.failures.length - 1];
+        const base = last ? last.message : 'no model could answer';
+        throw new Error(models.length > 1 ? `${base} (tried: ${models.join(', ')})` : base);
+      }
+      const result = outcome.value!;
+      const fellBackFrom = outcome.model !== activeProvider.model ? activeProvider.model : undefined;
       setConversations((list) =>
-        updateMessage(list, convId, assistantId, (m) => ({ ...m, stats: result.stats })),
+        updateMessage(list, convId, assistantId, (m) => ({
+          ...m,
+          stats: result.stats,
+          model: outcome.model,
+          fellBackFrom,
+          trimmedCount: trim.dropped > 0 ? trim.dropped : undefined,
+        })),
       );
     } catch (err) {
       const aborted = controller.signal.aborted;
@@ -159,6 +184,7 @@ export default function App() {
         updateMessage(list, convId, assistantId, (m) => ({
           ...m,
           error: message,
+          trimmedCount: trim.dropped > 0 ? trim.dropped : undefined,
         })),
       );
     } finally {

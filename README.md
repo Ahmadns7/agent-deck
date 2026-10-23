@@ -270,17 +270,23 @@ Keys and privacy. Auth headers are stored in localStorage on this device, unencr
 
 ## Features (AI studio)
 
-Logic in place and covered by tests (src/lib/*.test.ts):
+Live in the UI:
 
-- PWA: installable manifest, service worker offline app shell (API calls always go to the network)
-- Markdown parser (headings, lists, quotes, http links, fenced code that tolerates an unclosed fence while streaming) and a syntax-highlighting tokenizer
-- Estimated cost calculator with an editable per-model pricing table (estimates, not billing)
-- Fuzzy command palette search and the keyboard shortcut list
-- Prompt library helpers: {{variable}} extraction and fill, /prompt command parsing
-- Stop-token cleanup for streamed text
-- Reply variants (A/B swipe), auto-title from the first exchange
-- Message search across conversations, conversation sort (pinned, favorite, recent, title), tags
-- Read-only snapshot encode/decode (compressed #snap= hash), export text wrapping
-- Voice input and output helpers (Web Speech API, SpeechSynthesis)
+- PWA: installable manifest and a service worker that caches the app shell. API calls always go to the network.
+- Markdown rendering in assistant replies, with fenced code blocks.
+- Reply variants with A/B swipe.
+- Auto-title for new conversations from the first exchange.
+- Message search across conversations, plus sort (pinned, favorite, recent, title) and tags in the sidebar.
+- Command palette (Cmd/Ctrl+K) that searches chats, skills and settings, with a keyboard shortcut list.
+- Prompt library with `/prompt` insert and a `{{variable}}` fill-in dialog before send.
+- Read-only snapshot share via a compressed `#snap=` link, with a viewer route.
+- Markdown export of a conversation.
+- Voice input (Web Speech API, feature-detected) and a speaker toggle (SpeechSynthesis).
+- Good/bad feedback on replies.
+- Per-conversation system prompt and temperature/max tokens overrides.
+- Stop-token cleanup on streamed text.
 
-Not yet wired into the chat UI: the helpers above are not yet hooked into the visible interface.
+Logic only, not wired into the UI yet (covered by tests in src/lib):
+
+- Estimated cost calculator and the editable per-model pricing table (src/lib/pricing.ts). It is not shown anywhere in the app yet.
+

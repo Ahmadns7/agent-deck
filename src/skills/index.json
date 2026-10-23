@@ -1,0 +1,355 @@
+{
+  "count": 50,
+  "skills": [
+    {
+      "slug": "react-hooks",
+      "name": "React hooks",
+      "category": "react",
+      "description": "Hook rules, dependency arrays, custom hooks, and avoiding effects for derived state.",
+      "file": "react-hooks.md"
+    },
+    {
+      "slug": "react-server-components",
+      "name": "React server and client components",
+      "category": "react",
+      "description": "Server vs client component boundaries, serialization limits, and data fetching placement.",
+      "file": "react-server-components.md"
+    },
+    {
+      "slug": "react-state",
+      "name": "React state placement",
+      "category": "react",
+      "description": "Choosing local, lifted, context, server-cache, or URL state without redundant copies.",
+      "file": "react-state.md"
+    },
+    {
+      "slug": "react-composition",
+      "name": "React composition patterns",
+      "category": "react",
+      "description": "Composition over prop drilling and boolean-prop explosion; compound components.",
+      "file": "react-composition.md"
+    },
+    {
+      "slug": "react-forms",
+      "name": "React forms",
+      "category": "react",
+      "description": "Controlled and uncontrolled inputs, validation timing, accessible errors, and submit states.",
+      "file": "react-forms.md"
+    },
+    {
+      "slug": "react-error-boundaries",
+      "name": "React error boundaries and Suspense",
+      "category": "react",
+      "description": "Error boundaries, Suspense fallbacks, and graceful degradation for failed sections.",
+      "file": "react-error-boundaries.md"
+    },
+    {
+      "slug": "ts-strict-types",
+      "name": "Strict TypeScript types",
+      "category": "typescript",
+      "description": "Strict typing: avoid any, narrow with guards, use unknown at boundaries, discriminated unions.",
+      "file": "ts-strict-types.md"
+    },
+    {
+      "slug": "ts-generics",
+      "name": "TypeScript generics and utility types",
+      "category": "typescript",
+      "description": "Generics with constraints, inference-friendly signatures, and restrained mapped or conditional types.",
+      "file": "ts-generics.md"
+    },
+    {
+      "slug": "ts-api-types",
+      "name": "TypeScript types for API data",
+      "category": "typescript",
+      "description": "Validate external data at runtime and derive types from the validator, not from casts.",
+      "file": "ts-api-types.md"
+    },
+    {
+      "slug": "ts-config",
+      "name": "TypeScript configuration",
+      "category": "typescript",
+      "description": "tsconfig strictness, module resolution for Vite and Node, and path aliases.",
+      "file": "ts-config.md"
+    },
+    {
+      "slug": "ts-errors",
+      "name": "TypeScript error handling",
+      "category": "typescript",
+      "description": "Typed error handling with result values and narrowing on error types.",
+      "file": "ts-errors.md"
+    },
+    {
+      "slug": "tailwind-utilities",
+      "name": "Tailwind utility conventions",
+      "category": "css",
+      "description": "Utility-first Tailwind usage, spacing scale discipline, and avoiding @apply sprawl.",
+      "file": "tailwind-utilities.md"
+    },
+    {
+      "slug": "tailwind-responsive",
+      "name": "Mobile-first responsive layout",
+      "category": "css",
+      "description": "Mobile-first breakpoints, container queries, and fluid sizing with clamp().",
+      "file": "tailwind-responsive.md"
+    },
+    {
+      "slug": "css-layout",
+      "name": "CSS layout with flexbox and grid",
+      "category": "css",
+      "description": "Choosing flex vs grid, intrinsic sizing, and the min-width:0 and overflow pitfalls.",
+      "file": "css-layout.md"
+    },
+    {
+      "slug": "css-theming",
+      "name": "CSS theming and design tokens",
+      "category": "css",
+      "description": "Design tokens as CSS custom properties, light and dark themes, and color-scheme.",
+      "file": "css-theming.md"
+    },
+    {
+      "slug": "css-animation",
+      "name": "CSS animation with reduced motion",
+      "category": "css",
+      "description": "Motion that animates transform and opacity and respects prefers-reduced-motion.",
+      "file": "css-animation.md"
+    },
+    {
+      "slug": "perf-core-web-vitals",
+      "name": "Core Web Vitals optimization",
+      "category": "performance",
+      "description": "Improve LCP, INP, and CLS by fixing measured causes, not guessing.",
+      "file": "perf-core-web-vitals.md"
+    },
+    {
+      "slug": "perf-bundle-size",
+      "name": "JavaScript bundle size",
+      "category": "performance",
+      "description": "Code splitting, lazy routes, tree shaking, and checking what actually ships.",
+      "file": "perf-bundle-size.md"
+    },
+    {
+      "slug": "perf-rendering",
+      "name": "React rendering performance",
+      "category": "performance",
+      "description": "Avoid needless re-renders, memoize only when measured, and virtualize long lists.",
+      "file": "perf-rendering.md"
+    },
+    {
+      "slug": "perf-images-fonts",
+      "name": "Images and web font loading",
+      "category": "performance",
+      "description": "Image dimensions and formats, lazy loading, and font-display and preload strategy.",
+      "file": "perf-images-fonts.md"
+    },
+    {
+      "slug": "perf-network-caching",
+      "name": "Network caching and request waterfalls",
+      "category": "performance",
+      "description": "Cache headers, request waterfalls, prefetching, and deduplicating requests.",
+      "file": "perf-network-caching.md"
+    },
+    {
+      "slug": "a11y-semantic-html",
+      "name": "Semantic HTML first",
+      "category": "accessibility",
+      "description": "Use native elements before ARIA, with landmarks, heading order, and correct lists.",
+      "file": "a11y-semantic-html.md"
+    },
+    {
+      "slug": "a11y-keyboard-focus",
+      "name": "Keyboard access and focus management",
+      "category": "accessibility",
+      "description": "Keyboard operability, visible focus, focus trapping in dialogs, and skip links.",
+      "file": "a11y-keyboard-focus.md"
+    },
+    {
+      "slug": "a11y-aria",
+      "name": "ARIA roles, names, and states",
+      "category": "accessibility",
+      "description": "Correct ARIA roles, accessible names, and state attributes; the first rule of ARIA.",
+      "file": "a11y-aria.md"
+    },
+    {
+      "slug": "a11y-color-contrast",
+      "name": "Color contrast and visual access",
+      "category": "accessibility",
+      "description": "WCAG AA contrast, not relying on color alone, and text that scales.",
+      "file": "a11y-color-contrast.md"
+    },
+    {
+      "slug": "a11y-forms-feedback",
+      "name": "Accessible forms and status messages",
+      "category": "accessibility",
+      "description": "Labels, error association, and live regions for status and async feedback.",
+      "file": "a11y-forms-feedback.md"
+    },
+    {
+      "slug": "test-unit-vitest",
+      "name": "Unit testing with Vitest",
+      "category": "testing",
+      "description": "Arrange-act-assert unit tests, boundary mocking, and testing behavior not internals.",
+      "file": "test-unit-vitest.md"
+    },
+    {
+      "slug": "test-react-testing-library",
+      "name": "React Testing Library",
+      "category": "testing",
+      "description": "Query by role and label, simulate real user events, and wait for async UI correctly.",
+      "file": "test-react-testing-library.md"
+    },
+    {
+      "slug": "test-e2e-playwright",
+      "name": "End-to-end testing with Playwright",
+      "category": "testing",
+      "description": "Stable locators, web-first assertions, fixtures, and CI-friendly retries.",
+      "file": "test-e2e-playwright.md"
+    },
+    {
+      "slug": "test-msw-mocking",
+      "name": "API mocking with MSW",
+      "category": "testing",
+      "description": "Mock Service Worker for network-level mocks shared by tests and local dev.",
+      "file": "test-msw-mocking.md"
+    },
+    {
+      "slug": "test-tdd",
+      "name": "Test-driven development",
+      "category": "testing",
+      "description": "Red, green, refactor: write the failing test first and keep each step minimal.",
+      "file": "test-tdd.md"
+    },
+    {
+      "slug": "sec-xss",
+      "name": "Preventing XSS",
+      "category": "security",
+      "description": "Escape output, avoid raw HTML injection, sanitize user HTML, and set a strict CSP.",
+      "file": "sec-xss.md"
+    },
+    {
+      "slug": "sec-auth-sessions",
+      "name": "Authentication and sessions",
+      "category": "security",
+      "description": "Secure session cookies, token storage tradeoffs, and CSRF protection.",
+      "file": "sec-auth-sessions.md"
+    },
+    {
+      "slug": "sec-secrets",
+      "name": "Secrets and environment variables",
+      "category": "security",
+      "description": "Keep secrets server-side, handle env vars safely, and rotate anything leaked.",
+      "file": "sec-secrets.md"
+    },
+    {
+      "slug": "sec-input-validation",
+      "name": "Input validation and injection",
+      "category": "security",
+      "description": "Validate all external input on the server with allowlists and parameterized queries.",
+      "file": "sec-input-validation.md"
+    },
+    {
+      "slug": "sec-dependency-audit",
+      "name": "Dependency and supply-chain security",
+      "category": "security",
+      "description": "Audit dependencies, commit lockfiles, and keep the dependency surface small.",
+      "file": "sec-dependency-audit.md"
+    },
+    {
+      "slug": "api-rest-design",
+      "name": "REST API design",
+      "category": "node",
+      "description": "Resource naming, status codes, pagination, filtering, and idempotent writes.",
+      "file": "api-rest-design.md"
+    },
+    {
+      "slug": "api-error-handling",
+      "name": "API error responses",
+      "category": "node",
+      "description": "A consistent error envelope with stable codes and no internal details leaked.",
+      "file": "api-error-handling.md"
+    },
+    {
+      "slug": "node-async",
+      "name": "Async correctness in Node",
+      "category": "node",
+      "description": "Promise combinators, cancellation with AbortSignal, timeouts, and avoiding unhandled rejections.",
+      "file": "node-async.md"
+    },
+    {
+      "slug": "node-express-fastify",
+      "name": "Node HTTP server structure",
+      "category": "node",
+      "description": "Middleware ordering, request validation, and graceful shutdown for Express or Fastify.",
+      "file": "node-express-fastify.md"
+    },
+    {
+      "slug": "api-graphql",
+      "name": "GraphQL API design",
+      "category": "node",
+      "description": "Schema design, avoiding N+1 queries with batching, and limiting query cost.",
+      "file": "api-graphql.md"
+    },
+    {
+      "slug": "devops-ci-github-actions",
+      "name": "CI with GitHub Actions",
+      "category": "devops",
+      "description": "Lint, test, and build gates with caching, matrix runs, and pinned actions.",
+      "file": "devops-ci-github-actions.md"
+    },
+    {
+      "slug": "devops-docker",
+      "name": "Docker images",
+      "category": "devops",
+      "description": "Multi-stage builds, small images, non-root users, and health checks.",
+      "file": "devops-docker.md"
+    },
+    {
+      "slug": "devops-deploy-vercel",
+      "name": "Deploying on Vercel",
+      "category": "devops",
+      "description": "Preview deployments, per-environment variables, cache headers, and rollback.",
+      "file": "devops-deploy-vercel.md"
+    },
+    {
+      "slug": "devops-observability",
+      "name": "Logging, errors, and health checks",
+      "category": "devops",
+      "description": "Structured logs, error tracking, metrics, and health endpoints.",
+      "file": "devops-observability.md"
+    },
+    {
+      "slug": "arch-feature-folders",
+      "name": "Feature-based folder structure",
+      "category": "architecture",
+      "description": "Feature folders, clear module boundaries, and no circular imports.",
+      "file": "arch-feature-folders.md"
+    },
+    {
+      "slug": "arch-api-layer",
+      "name": "Separating the API layer from UI",
+      "category": "architecture",
+      "description": "Keep the API client and data access out of components.",
+      "file": "arch-api-layer.md"
+    },
+    {
+      "slug": "arch-state-boundaries",
+      "name": "State boundaries",
+      "category": "architecture",
+      "description": "Decide which state is server data, which is client UI state, and keep them apart.",
+      "file": "arch-state-boundaries.md"
+    },
+    {
+      "slug": "arch-adr",
+      "name": "Architecture decision records",
+      "category": "architecture",
+      "description": "Record decisions with context, the choice, and consequences so they can be revisited.",
+      "file": "arch-adr.md"
+    },
+    {
+      "slug": "arch-monorepo-boundaries",
+      "name": "Monorepo module boundaries",
+      "category": "architecture",
+      "description": "Dependency direction rules, shared packages, and enforcing boundaries in tooling.",
+      "file": "arch-monorepo-boundaries.md"
+    }
+  ]
+}

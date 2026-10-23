@@ -23,7 +23,7 @@ export function Sidebar({ conversations, currentId, disabled, open, onClose, onS
 
   return (
     <aside
-      className={`fixed inset-y-0 left-0 z-40 flex w-72 max-w-[85vw] flex-col border-r border-slate-200 bg-white transition-transform duration-200 dark:border-slate-800 dark:bg-slate-900 md:static md:z-auto md:w-64 md:max-w-none md:shrink-0 md:translate-x-0 ${
+      className={`fixed inset-y-0 left-0 z-40 flex w-72 max-w-[85vw] flex-col border-r border-white/60 bg-white/75 shadow-xl backdrop-blur-xl transition-transform duration-300 ease-out dark:border-white/10 dark:bg-slate-900/75 md:static md:z-auto md:w-64 md:max-w-none md:shrink-0 md:translate-x-0 ${
         open ? 'translate-x-0' : '-translate-x-full'
       }`}
     >
@@ -50,7 +50,7 @@ export function Sidebar({ conversations, currentId, disabled, open, onClose, onS
         <span className="text-[11px] text-slate-400">{conversations.length}</span>
       </div>
       <div className="px-3 pb-2">
-        <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search chats" aria-label="Search chats" className="min-h-10 w-full rounded-md border border-slate-300 bg-transparent px-3 text-sm outline-none focus:border-indigo-500 dark:border-slate-700" />
+        <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search chats" aria-label="Search chats" className="min-h-11 w-full rounded-xl border border-slate-300/80 bg-white/60 px-3 text-base outline-none transition-colors duration-200 focus:border-indigo-500 md:min-h-10 md:text-sm dark:border-white/10 dark:bg-slate-950/50" />
       </div>
       <nav className="flex-1 overflow-y-auto px-2 pb-3">
         {sorted.length === 0 && <p className="px-2 py-3 text-xs text-slate-500">No conversations yet.</p>}

@@ -262,7 +262,7 @@ export default function App() {
       />
 
       <main className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-20 flex min-w-0 items-center gap-2 border-b border-slate-200 bg-slate-50 px-3 py-2 md:justify-between md:px-5 md:py-3 dark:border-slate-800 dark:bg-slate-950">
+        <header className="sticky top-0 z-20 flex min-w-0 items-center gap-2 border-b border-white/60 bg-white/70 px-3 py-2 shadow-sm backdrop-blur-xl md:justify-between md:px-5 md:py-3 dark:border-white/10 dark:bg-slate-950/70">
           <button
             type="button"
             onClick={() => setShowHistory(true)}
@@ -273,6 +273,7 @@ export default function App() {
           </button>
           <div className="min-w-0 flex-1 md:flex-initial">
             <h1 className="truncate text-sm font-semibold">{current?.title ?? 'New chat'}</h1>
+            <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-cyan-400 md:text-[11px] dark:text-cyan-300">MercuReal Assistant</p>
             <p className="truncate text-xs text-slate-500">
               {activeProvider ? `${activeProvider.name} · ${activeProvider.model}` : 'No provider'}
             </p>

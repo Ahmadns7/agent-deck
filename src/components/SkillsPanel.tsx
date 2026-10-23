@@ -59,23 +59,23 @@ export function SkillsPanel({ skills, onChange, bundled, disabled, onDisabledCha
     finally { setBusy(false); }
   }
 
-  return <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 md:items-center md:p-4" role="dialog" aria-modal="true" aria-label="Agent skills">
-    <div className="w-full max-w-2xl rounded-t-xl border border-slate-200 bg-white shadow-xl dark:border-slate-800 dark:bg-slate-900 md:rounded-lg">
-      <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3 dark:border-slate-800"><div><h2 className="font-semibold">Agent skills</h2><p className="text-xs text-slate-500">Install real skill instructions from GitHub.</p></div><button type="button" onClick={onClose} className="min-h-11 px-3 text-sm text-slate-500">Close</button></div>
-      <div className="space-y-4 p-4 md:p-5">
+  return <div className="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/40 backdrop-blur-sm md:items-center md:p-4" role="dialog" aria-modal="true" aria-label="Agent skills">
+    <div className="flex max-h-[92dvh] w-full max-w-2xl flex-col rounded-t-2xl border border-white/60 bg-white/85 shadow-2xl backdrop-blur-xl md:max-h-[88vh] md:rounded-2xl dark:border-white/10 dark:bg-slate-900/85">
+      <div className="flex shrink-0 items-center justify-between border-b border-slate-200/70 px-4 py-3 dark:border-white/10"><div><h2 className="font-semibold">Agent skills</h2><p className="text-xs text-slate-500">Install real skill instructions from GitHub.</p></div><button type="button" onClick={onClose} className="min-h-11 px-3 text-sm text-slate-500">Close</button></div>
+      <div className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain p-4 md:p-5">
         <div>
           <h3 className="mb-2 text-sm font-semibold">Bundled web-dev skills ({bundled.length})</h3>
           <p className="mb-2 text-xs text-slate-500">Invoke in chat with @slug, for example @react-hooks. Toggle to disable.</p>
-          <div className="max-h-72 overflow-auto rounded-md border border-slate-200 dark:border-slate-800">
+          <div className="max-h-[40vh] overflow-auto overscroll-contain rounded-xl border border-slate-200/70 dark:border-white/10">
             <table className="w-full text-left text-xs">
-              <thead className="sticky top-0 bg-slate-50 dark:bg-slate-950"><tr><th className="px-2 py-1">Name</th><th className="px-2 py-1">Category</th><th className="px-2 py-1">Description</th><th className="px-2 py-1">On</th></tr></thead>
+              <thead className="sticky top-0 z-10 bg-slate-100 dark:bg-slate-900"><tr><th className="px-2 py-1">Name</th><th className="px-2 py-1">Category</th><th className="px-2 py-1">Description</th><th className="px-2 py-1">On</th></tr></thead>
               <tbody>{bundled.map((skill) => {
                 const on = !disabled.includes(skill.slug);
                 return <tr key={skill.slug} className="border-t border-slate-200 align-top dark:border-slate-800">
                   <td className="px-2 py-1 font-mono">@{skill.slug}</td>
                   <td className="px-2 py-1">{skill.category}</td>
                   <td className="px-2 py-1 text-slate-500">{skill.description}</td>
-                  <td className="px-2 py-1"><input type="checkbox" aria-label={`Enable ${skill.name}`} checked={on} onChange={() => onDisabledChange(on ? [...disabled, skill.slug] : disabled.filter((x) => x !== skill.slug))} /></td>
+                  <td className="px-1 py-1"><label className="flex min-h-11 min-w-11 items-center justify-center"><input type="checkbox" className="h-5 w-5 accent-indigo-600" aria-label={`Enable ${skill.name}`} checked={on} onChange={() => onDisabledChange(on ? [...disabled, skill.slug] : disabled.filter((x) => x !== skill.slug))} /></label></td>
                 </tr>;
               })}</tbody>
             </table>

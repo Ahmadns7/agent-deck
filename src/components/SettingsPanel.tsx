@@ -57,7 +57,7 @@ export function SettingsPanel({ providers, activeId, onChange, onActivate, onClo
       aria-modal="true"
       aria-label="Providers"
     >
-      <div className="flex max-h-[92dvh] w-full flex-col rounded-t-xl border border-slate-200 bg-white shadow-xl md:max-h-[90vh] md:max-w-2xl md:rounded-lg dark:border-slate-800 dark:bg-slate-900">
+      <div className="flex max-h-[92dvh] w-full flex-col rounded-t-2xl border border-white/60 bg-white/85 shadow-2xl backdrop-blur-xl md:max-h-[90vh] md:max-w-2xl md:rounded-2xl dark:border-white/10 dark:bg-slate-900/85">
         <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3 md:px-5 dark:border-slate-800">
           <h2 className="font-semibold">Providers</h2>
           <button

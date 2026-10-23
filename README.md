@@ -1,4 +1,4 @@
-# Agent Deck
+# MercuReal Assistant
 
 A multi-LLM playground. Chat with OpenAI-compatible endpoints (OpenAI, Ollama, LM Studio, OpenRouter, any custom base URL) and Anthropic, with token-by-token streaming and per-response stats.
 

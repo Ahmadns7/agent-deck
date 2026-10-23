@@ -95,7 +95,7 @@ export function ChatView({
       </div>
 
       <form
-        className="relative border-t border-slate-200 p-3 md:p-4 dark:border-slate-800"
+        className="relative border-t border-white/60 bg-white/70 p-3 shadow-[0_-8px_24px_rgba(15,23,42,0.06)] backdrop-blur-xl md:p-4 dark:border-white/10 dark:bg-slate-950/70"
         onSubmit={(e) => {
           e.preventDefault();
           if (streaming) onStop();
@@ -178,7 +178,7 @@ export function ChatView({
             placeholder="Message (Enter to send, Shift+Enter for newline)"
             aria-label="Message"
             // 16px on phones stops iOS Safari from zooming into the field; 14px from md up as before.
-            className="min-h-11 min-w-0 flex-1 resize-none rounded-md border border-slate-300 bg-white px-3 py-2 text-base outline-none focus:border-indigo-500 md:min-h-[2.5rem] md:text-sm dark:border-slate-700 dark:bg-slate-900"
+            className="min-h-11 min-w-0 flex-1 resize-none rounded-xl border border-slate-300/80 bg-white/80 px-3 py-2 text-base shadow-inner outline-none transition-colors duration-200 focus:border-indigo-500 md:min-h-[2.5rem] md:text-sm dark:border-white/10 dark:bg-slate-900/70"
           />
           <button
             type="submit"
@@ -229,7 +229,7 @@ function Bubble({ message, streaming }: { message: StoredMessage; streaming: boo
         className={`max-w-[88%] break-words whitespace-pre-wrap rounded-lg px-3.5 py-2.5 text-sm leading-relaxed md:max-w-[75%] md:px-4 ${
           isUser
             ? 'bg-indigo-600 text-white'
-            : 'border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900'
+            : 'border border-white/70 bg-white/80 shadow-[0_8px_30px_rgba(15,23,42,0.08)] backdrop-blur-md dark:border-white/10 dark:bg-slate-900/70'
         } ${live ? 'caret' : ''}`}
       >
         {message.attachments && message.attachments.length > 0 && (

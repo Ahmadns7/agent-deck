@@ -6,6 +6,7 @@ export const STORAGE_KEYS = {
   mcpServers: 'agent-deck:mcp-servers',
   agentSkills: 'agent-deck:agent-skills',
   workspaces: 'agent-deck:workspaces',
+  aiFeatures: 'agent-deck:ai-features',
   providers: 'agent-deck:providers',
   activeProvider: 'agent-deck:active-provider',
   conversations: 'agent-deck:conversations',

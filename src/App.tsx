@@ -7,12 +7,14 @@ import { SkillsPanel } from './components/SkillsPanel';
 import { DEFAULT_MCP_SERVERS, enabledMcpTools } from './lib/mcp';
 import { StatsDisclosure, StatsPanel } from './components/StatsPanel';
 import { DashboardPanel } from './components/DashboardPanel';
+import { FeatureHub } from './components/FeatureHub';
+import { DEFAULT_AI_FEATURES } from './lib/features';
 import { PROVIDER_PRESETS } from './lib/providers';
 import { lastStatsMessage, titleFrom, updateConversation, updateMessage } from './lib/conversations';
 import { loadJSON, saveJSON, STORAGE_KEYS } from './lib/storage';
 import { streamChat } from './lib/stream';
 import { uid } from './lib/id';
-import type { AgentSkill, ChatMessage, Conversation, ProviderConfig, StoredMessage, Workspace } from './lib/types';
+import type { AIFeature, AgentSkill, ChatMessage, Conversation, ProviderConfig, StoredMessage, Workspace } from './lib/types';
 
 type Theme = 'dark' | 'light';
 
@@ -42,6 +44,8 @@ export default function App() {
   const [mcpServers, setMcpServers] = useState(() => loadJSON(STORAGE_KEYS.mcpServers, DEFAULT_MCP_SERVERS));
   const [showHistory, setShowHistory] = useState(false);
   const [showDashboard, setShowDashboard] = useState(false);
+  const [showFeatures, setShowFeatures] = useState(false);
+  const [aiFeatures, setAiFeatures] = useState<AIFeature[]>(() => loadJSON(STORAGE_KEYS.aiFeatures, DEFAULT_AI_FEATURES));
   const [workspaces, setWorkspaces] = useState<Workspace[]>(() => loadJSON(STORAGE_KEYS.workspaces, [{ id: 'default', name: 'Personal workspace', projects: [] }]));
   const abortRef = useRef<AbortController | null>(null);
 
@@ -60,6 +64,7 @@ export default function App() {
   useEffect(() => saveJSON(STORAGE_KEYS.mcpServers, mcpServers), [mcpServers]);
   useEffect(() => saveJSON(STORAGE_KEYS.agentSkills, skills), [skills]);
   useEffect(() => saveJSON(STORAGE_KEYS.workspaces, workspaces), [workspaces]);
+  useEffect(() => saveJSON(STORAGE_KEYS.aiFeatures, aiFeatures), [aiFeatures]);
 
   const activeMcpTools = enabledMcpTools(mcpServers);
 
@@ -115,8 +120,10 @@ export default function App() {
     const history: ChatMessage[] = (conversations.find((c) => c.id === convId)?.messages ?? [])
       .filter((m) => m.content.length > 0 && !m.error)
       .map((m) => ({ role: m.role, content: m.content }));
-    if (skills.length > 0) {
-      history.unshift({ role: 'system', content: `You have these installed agent skills. Follow their instructions when relevant:\n\n${skills.map((skill) => `## ${skill.name}\n${skill.instructions}`).join('\n\n')}` });
+    const enabledFeatures = aiFeatures.filter((feature) => feature.enabled);
+    if (skills.length > 0 || enabledFeatures.length > 0) {
+      const featureInstructions = enabledFeatures.map((feature) => `- ${feature.name}: ${feature.description}`).join('\n');
+      history.unshift({ role: 'system', content: `You are MercuReal assistant. Apply these enabled behaviors when relevant:\n${featureInstructions}\n\nInstalled skills:\n${skills.map((skill) => `## ${skill.name}\n${skill.instructions}`).join('\n\n')}` });
     }
     history.push({ role: 'user', content: text });
 
@@ -214,6 +221,13 @@ export default function App() {
             </button>
             <button
               type="button"
+              onClick={() => setShowFeatures(true)}
+              className="min-h-11 rounded-md border border-violet-400/30 bg-violet-400/10 px-3 text-xs text-violet-200 hover:bg-violet-400/20 md:min-h-0 md:px-2.5 md:py-1"
+            >
+              AI features {aiFeatures.filter((feature) => feature.enabled).length}
+            </button>
+            <button
+              type="button"
               onClick={() => setShowDashboard(true)}
               className="min-h-11 rounded-md border border-cyan-400/30 bg-cyan-400/10 px-3 text-xs text-cyan-200 hover:bg-cyan-400/20 md:min-h-0 md:px-2.5 md:py-1"
             >
@@ -263,6 +277,7 @@ export default function App() {
         </div>
       </main>
 
+      {showFeatures && <FeatureHub features={aiFeatures} onChange={setAiFeatures} onClose={() => setShowFeatures(false)} />}
       {showDashboard && <DashboardPanel conversations={conversations} workspaces={workspaces} onWorkspacesChange={setWorkspaces} onClose={() => setShowDashboard(false)} />}
       {showSkills && <SkillsPanel skills={skills} onChange={setSkills} onClose={() => setShowSkills(false)} />}
       {showMcp && <McpPanel servers={mcpServers} onChange={setMcpServers} onClose={() => setShowMcp(false)} />}

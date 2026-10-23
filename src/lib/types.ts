@@ -62,6 +62,14 @@ export interface McpServer {
   tools: McpTool[];
 }
 
+export interface AIFeature {
+  id: string;
+  name: string;
+  description: string;
+  category: 'Core' | 'Productivity' | 'Safety' | 'Power user';
+  enabled: boolean;
+}
+
 export interface WorkspaceProject {
   id: string;
   name: string;

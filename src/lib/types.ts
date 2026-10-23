@@ -38,6 +38,51 @@ export interface Conversation {
 
 export type ProviderKind = 'openai' | 'anthropic';
 
+export interface AgentSkill {
+  id: string;
+  name: string;
+  sourceUrl: string;
+  description: string;
+  instructions: string;
+  installedAt: number;
+}
+
+export interface McpTool {
+  id: string;
+  name: string;
+  description: string;
+  enabled: boolean;
+}
+
+export interface McpServer {
+  id: string;
+  name: string;
+  url: string;
+  status: 'available' | 'offline';
+  tools: McpTool[];
+}
+
+export interface AIFeature {
+  id: string;
+  name: string;
+  description: string;
+  category: 'Core' | 'Productivity' | 'Safety' | 'Power user';
+  enabled: boolean;
+}
+
+export interface WorkspaceProject {
+  id: string;
+  name: string;
+  description: string;
+  updatedAt: number;
+}
+
+export interface Workspace {
+  id: string;
+  name: string;
+  projects: WorkspaceProject[];
+}
+
 export interface ProviderConfig {
   id: string;
   name: string;

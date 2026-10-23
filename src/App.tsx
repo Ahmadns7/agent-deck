@@ -2,13 +2,19 @@ import { useEffect, useRef, useState } from 'react';
 import { ChatView } from './components/ChatView';
 import { Sidebar } from './components/Sidebar';
 import { SettingsPanel } from './components/SettingsPanel';
+import { McpPanel } from './components/McpPanel';
+import { SkillsPanel } from './components/SkillsPanel';
+import { DEFAULT_MCP_SERVERS, enabledMcpTools } from './lib/mcp';
 import { StatsDisclosure, StatsPanel } from './components/StatsPanel';
+import { DashboardPanel } from './components/DashboardPanel';
+import { FeatureHub } from './components/FeatureHub';
+import { DEFAULT_AI_FEATURES } from './lib/features';
 import { PROVIDER_PRESETS } from './lib/providers';
 import { lastStatsMessage, titleFrom, updateConversation, updateMessage } from './lib/conversations';
 import { loadJSON, saveJSON, STORAGE_KEYS } from './lib/storage';
 import { streamChat } from './lib/stream';
 import { uid } from './lib/id';
-import type { ChatMessage, Conversation, ProviderConfig, StoredMessage } from './lib/types';
+import type { AIFeature, AgentSkill, ChatMessage, Conversation, ProviderConfig, StoredMessage, Workspace } from './lib/types';
 
 type Theme = 'dark' | 'light';
 
@@ -32,7 +38,15 @@ export default function App() {
   const [draft, setDraft] = useState('');
   const [streaming, setStreaming] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [showMcp, setShowMcp] = useState(false);
+  const [showSkills, setShowSkills] = useState(false);
+  const [skills, setSkills] = useState<AgentSkill[]>(() => loadJSON(STORAGE_KEYS.agentSkills, []));
+  const [mcpServers, setMcpServers] = useState(() => loadJSON(STORAGE_KEYS.mcpServers, DEFAULT_MCP_SERVERS));
   const [showHistory, setShowHistory] = useState(false);
+  const [showDashboard, setShowDashboard] = useState(false);
+  const [showFeatures, setShowFeatures] = useState(false);
+  const [aiFeatures, setAiFeatures] = useState<AIFeature[]>(() => loadJSON(STORAGE_KEYS.aiFeatures, DEFAULT_AI_FEATURES));
+  const [workspaces, setWorkspaces] = useState<Workspace[]>(() => loadJSON(STORAGE_KEYS.workspaces, [{ id: 'default', name: 'Personal workspace', projects: [] }]));
   const abortRef = useRef<AbortController | null>(null);
 
   const activeProvider =
@@ -47,11 +61,28 @@ export default function App() {
   useEffect(() => saveJSON(STORAGE_KEYS.providers, providers), [providers]);
   useEffect(() => saveJSON(STORAGE_KEYS.activeProvider, activeProvider?.id ?? ''), [activeProvider]);
   useEffect(() => saveJSON(STORAGE_KEYS.conversations, conversations), [conversations]);
+  useEffect(() => saveJSON(STORAGE_KEYS.mcpServers, mcpServers), [mcpServers]);
+  useEffect(() => saveJSON(STORAGE_KEYS.agentSkills, skills), [skills]);
+  useEffect(() => saveJSON(STORAGE_KEYS.workspaces, workspaces), [workspaces]);
+  useEffect(() => saveJSON(STORAGE_KEYS.aiFeatures, aiFeatures), [aiFeatures]);
+
+  const activeMcpTools = enabledMcpTools(mcpServers);
 
   function newChat() {
     if (streaming) return;
     setCurrentId(null);
     setDraft('');
+  }
+
+  function exportConversation(conversation: Conversation) {
+    const markdown = `# ${conversation.title}\n\n${conversation.messages.map((message) => `## ${message.role === 'user' ? 'You' : 'Assistant'}\n\n${message.content}`).join('\n\n')}`;
+    const blob = new Blob([markdown], { type: 'text/markdown' });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = `${conversation.title.replace(/[^a-z0-9]+/gi, '-').toLowerCase() || 'conversation'}.md`;
+    anchor.click();
+    URL.revokeObjectURL(url);
   }
 
   function deleteConversation(id: string) {
@@ -100,6 +131,11 @@ export default function App() {
     const history: ChatMessage[] = (conversations.find((c) => c.id === convId)?.messages ?? [])
       .filter((m) => m.content.length > 0 && !m.error)
       .map((m) => ({ role: m.role, content: m.content }));
+    const enabledFeatures = aiFeatures.filter((feature) => feature.enabled);
+    if (skills.length > 0 || enabledFeatures.length > 0) {
+      const featureInstructions = enabledFeatures.map((feature) => `- ${feature.name}: ${feature.description}`).join('\n');
+      history.unshift({ role: 'system', content: `You are MercuReal assistant. Apply these enabled behaviors when relevant:\n${featureInstructions}\n\nInstalled skills:\n${skills.map((skill) => `## ${skill.name}\n${skill.instructions}`).join('\n\n')}` });
+    }
     history.push({ role: 'user', content: text });
 
     const controller = new AbortController();
@@ -166,6 +202,7 @@ export default function App() {
           setShowHistory(false);
         }}
         onDelete={deleteConversation}
+        onExport={exportConversation}
       />
 
       <main className="flex min-w-0 flex-1 flex-col">
@@ -196,6 +233,34 @@ export default function App() {
             </button>
             <button
               type="button"
+              onClick={() => setShowFeatures(true)}
+              className="min-h-11 rounded-md border border-violet-400/30 bg-violet-400/10 px-3 text-xs text-violet-200 hover:bg-violet-400/20 md:min-h-0 md:px-2.5 md:py-1"
+            >
+              AI features {aiFeatures.filter((feature) => feature.enabled).length}
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowDashboard(true)}
+              className="min-h-11 rounded-md border border-cyan-400/30 bg-cyan-400/10 px-3 text-xs text-cyan-200 hover:bg-cyan-400/20 md:min-h-0 md:px-2.5 md:py-1"
+            >
+              Dashboard
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowSkills(true)}
+              className="min-h-11 rounded-md border border-slate-300 px-3 text-xs hover:bg-slate-100 md:min-h-0 md:px-2.5 md:py-1 dark:border-slate-700 dark:hover:bg-slate-800"
+            >
+              Skills {skills.length > 0 && `(${skills.length})`}
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowMcp(true)}
+              className="min-h-11 rounded-md border border-slate-300 px-3 text-xs hover:bg-slate-100 md:min-h-0 md:px-2.5 md:py-1 dark:border-slate-700 dark:hover:bg-slate-800"
+            >
+              Tools {activeMcpTools.length > 0 && `(${activeMcpTools.length})`}
+            </button>
+            <button
+              type="button"
               onClick={() => setShowSettings(true)}
               className="min-h-11 rounded-md border border-slate-300 px-3 text-xs hover:bg-slate-100 md:min-h-0 md:px-2.5 md:py-1 dark:border-slate-700 dark:hover:bg-slate-800"
             >
@@ -213,7 +278,9 @@ export default function App() {
             onDraftChange={setDraft}
             onSend={send}
             onStop={stop}
+            onPromptSelect={setDraft}
             streaming={streaming}
+            mcpTools={activeMcpTools.map((tool) => tool.name)}
             providerReady={
               Boolean(activeProvider?.apiKey) ||
               (activeProvider?.kind === 'openai' && activeProvider.baseUrl.includes('localhost'))
@@ -222,6 +289,11 @@ export default function App() {
           <StatsPanel stats={stats} />
         </div>
       </main>
+
+      {showFeatures && <FeatureHub features={aiFeatures} onChange={setAiFeatures} onClose={() => setShowFeatures(false)} />}
+      {showDashboard && <DashboardPanel conversations={conversations} workspaces={workspaces} onWorkspacesChange={setWorkspaces} onClose={() => setShowDashboard(false)} />}
+      {showSkills && <SkillsPanel skills={skills} onChange={setSkills} onClose={() => setShowSkills(false)} />}
+      {showMcp && <McpPanel servers={mcpServers} onChange={setMcpServers} onClose={() => setShowMcp(false)} />}
 
       {showSettings && (
         <SettingsPanel

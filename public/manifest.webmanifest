@@ -1,0 +1,13 @@
+{
+  "name": "MercuReal Assistant",
+  "short_name": "MercuReal",
+  "description": "Multi-LLM chat studio with streaming, prompts, and a command palette.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#080b12",
+  "theme_color": "#080b12",
+  "icons": [
+    { "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}

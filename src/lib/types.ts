@@ -68,6 +68,23 @@ export interface StoredMessage {
   trimmedCount?: number;
   /** Files attached to a user message (metadata only). */
   attachments?: AttachmentMeta[];
+  /** Alternative replies generated for this message (A/B swipe). Shown reply is at activeVariant. */
+  variants?: ReplyVariant[];
+  activeVariant?: number;
+  /** Local feedback label on an assistant reply. */
+  feedback?: 'good' | 'bad';
+  /** Pinned messages are listed at the top of the chat. */
+  pinned?: boolean;
+}
+
+/** One saved alternative reply. */
+export interface ReplyVariant {
+  content: string;
+  model?: string;
+  stats?: ResponseStats;
+  error?: string;
+  fellBackFrom?: string;
+  trimmedCount?: number;
 }
 
 export interface Conversation {
@@ -77,6 +94,14 @@ export interface Conversation {
   createdAt: number;
   updatedAt: number;
   messages: StoredMessage[];
+  /** Local organisation: folders/tags, pin and favorite. */
+  tags?: string[];
+  pinned?: boolean;
+  favorite?: boolean;
+  /** Per-conversation overrides. Undefined means use the global setting. */
+  systemPrompt?: string;
+  temperature?: number;
+  maxTokens?: number;
 }
 
 export type ProviderKind = 'openai' | 'anthropic';

@@ -13,6 +13,7 @@ import {
 } from '../lib/models';
 import { extractErrorMessage } from '../lib/stream';
 import type { ModelRef, ProviderConfig, ProviderKind } from '../lib/types';
+import { useModal } from '../lib/useModal';
 
 interface SettingsPanelProps {
   /** Render as a plain section inside the Settings hub instead of a modal overlay. */
@@ -25,6 +26,7 @@ interface SettingsPanelProps {
 }
 
 export function SettingsPanel({ providers, activeId, onChange, onActivate, onClose, embedded }: SettingsPanelProps) {
+  const dialogRef = useModal(onClose);
   const [editingId, setEditingId] = useState<string | null>(null);
   const editing = providers.find((p) => p.id === editingId);
 
@@ -136,14 +138,11 @@ export function SettingsPanel({ providers, activeId, onChange, onActivate, onClo
   );
   if (embedded) return body;
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 md:items-center md:p-4"
-      role="dialog"
-      aria-modal="true"
-      aria-label="Providers"
-    >
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 md:items-center md:p-4">
+      <div ref={dialogRef} tabIndex={-1} role="dialog" aria-modal="true" aria-label="Providers" className="contents">
       <div className="flex max-h-[92dvh] w-full flex-col rounded-t-2xl border border-white/60 bg-white/85 shadow-2xl backdrop-blur-xl md:max-h-[90vh] md:max-w-2xl md:rounded-2xl dark:border-white/10 dark:bg-slate-900/85">
         {body}
+      </div>
       </div>
     </div>
   );

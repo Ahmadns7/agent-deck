@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { uid } from '../lib/id';
 import type { AgentSkill } from '../lib/types';
 import type { BundledSkill } from '../lib/skills';
+import { useModal } from '../lib/useModal';
 
 interface SkillsPanelProps {
   skills: AgentSkill[];
@@ -27,6 +28,7 @@ function rawCandidates(url: URL) {
 }
 
 export function SkillsPanel({ skills, onChange, bundled, disabled, onDisabledChange, onClose, embedded }: SkillsPanelProps) {
+  const dialogRef = useModal(onClose);
   const [url, setUrl] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -61,7 +63,7 @@ export function SkillsPanel({ skills, onChange, bundled, disabled, onDisabledCha
     finally { setBusy(false); }
   }
 
-  const wrap = (node: React.ReactNode) => embedded ? <>{node}</> : <div className="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/40 backdrop-blur-sm md:items-center md:p-4" role="dialog" aria-modal="true" aria-label="Agent skills">{node}</div>;
+  const wrap = (node: React.ReactNode) => embedded ? <>{node}</> : <div className="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/40 backdrop-blur-sm md:items-center md:p-4"><div ref={dialogRef} tabIndex={-1} role="dialog" aria-modal="true" aria-label="Agent skills" className="contents">{node}</div></div>;
   return wrap(
     <div className="flex max-h-[92dvh] w-full max-w-2xl flex-col rounded-t-2xl border border-white/60 bg-white/85 shadow-2xl backdrop-blur-xl md:max-h-[88vh] md:rounded-2xl dark:border-white/10 dark:bg-slate-900/85">
       {!embedded && <div className="flex shrink-0 items-center justify-between border-b border-slate-200/70 px-4 py-3 dark:border-white/10"><div><h2 className="font-semibold">Agent skills</h2><p className="text-xs text-slate-500">Install real skill instructions from GitHub.</p></div><button type="button" onClick={onClose} className="min-h-11 px-3 text-sm text-slate-500">Close</button></div>}

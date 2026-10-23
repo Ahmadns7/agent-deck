@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { uid } from '../lib/id';
 import { MCP_CATALOG, MCP_CATEGORIES, discoverTools, isHttpsOrLocal, type RemoteMcpConnection } from '../mcp';
+import { useModal } from '../lib/useModal';
 
 interface McpPanelProps {
   connections: RemoteMcpConnection[];
@@ -13,6 +14,7 @@ interface McpPanelProps {
 const inputClass = 'mt-1 min-h-11 w-full rounded-md border border-slate-300 bg-white px-3 text-base dark:border-slate-700 dark:bg-slate-950';
 
 export function McpPanel({ connections, onChange, onClose, embedded }: McpPanelProps) {
+  const dialogRef = useModal(onClose);
   const [tab, setTab] = useState<'catalog' | 'connections'>('catalog');
   const [category, setCategory] = useState<string>('all');
   const [draft, setDraft] = useState({ name: '', url: '', authHeader: '' });
@@ -122,8 +124,10 @@ export function McpPanel({ connections, onChange, onClose, embedded }: McpPanelP
   );
   if (embedded) return panel;
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 md:items-center md:p-4" role="dialog" aria-modal="true" aria-label="MCP">
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 md:items-center md:p-4">
+      <div ref={dialogRef} tabIndex={-1} role="dialog" aria-modal="true" aria-label="MCP" className="contents">
       {panel}
+      </div>
     </div>
   );
 }

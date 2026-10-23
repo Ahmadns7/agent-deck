@@ -14,7 +14,7 @@ import { FeatureHub } from './components/FeatureHub';
 import { DEFAULT_AI_FEATURES } from './lib/features';
 import { PROVIDER_PRESETS } from './lib/providers';
 import { lastStatsMessage, titleFrom, updateConversation, updateMessage } from './lib/conversations';
-import { loadJSON, saveJSON, STORAGE_KEYS } from './lib/storage';
+import { isObjectArray, loadJSON, saveJSON, STORAGE_KEYS } from './lib/storage';
 import { streamChat } from './lib/stream';
 import { trimToBudget, DEFAULT_CONTEXT_BUDGET } from './lib/context';
 import { effectiveFallbacks, modelAttemptOrder, resolveCrossProviderAttempts, runWithFallbackChain } from './lib/fallback';
@@ -31,14 +31,14 @@ function makeDefaultProviders(): ProviderConfig[] {
 export default function App() {
   const [theme, setTheme] = useState<Theme>(() => loadJSON<Theme>(STORAGE_KEYS.theme, 'dark'));
   const [providers, setProviders] = useState<ProviderConfig[]>(() => {
-    const saved = loadJSON<ProviderConfig[]>(STORAGE_KEYS.providers, []);
+    const saved = loadJSON<ProviderConfig[]>(STORAGE_KEYS.providers, [], isObjectArray<ProviderConfig>);
     return saved.length > 0 ? saved : makeDefaultProviders();
   });
   const [activeProviderId, setActiveProviderId] = useState<string>(() =>
     loadJSON<string>(STORAGE_KEYS.activeProvider, ''),
   );
   const [conversations, setConversations] = useState<Conversation[]>(() =>
-    loadJSON<Conversation[]>(STORAGE_KEYS.conversations, []),
+    loadJSON<Conversation[]>(STORAGE_KEYS.conversations, [], isObjectArray<Conversation>),
   );
   const [currentId, setCurrentId] = useState<string | null>(null);
   const [draft, setDraft] = useState('');
@@ -50,14 +50,14 @@ export default function App() {
   const [fontSize, setFontSize] = useState(() => normalizeFontSize(loadJSON(STORAGE_KEYS.fontSize, 'medium')));
   const [showMcp, setShowMcp] = useState(false);
   const [showSkills, setShowSkills] = useState(false);
-  const [skills, setSkills] = useState<AgentSkill[]>(() => loadJSON(STORAGE_KEYS.agentSkills, []));
+  const [skills, setSkills] = useState<AgentSkill[]>(() => loadJSON<AgentSkill[]>(STORAGE_KEYS.agentSkills, [], isObjectArray<AgentSkill>));
   const [disabledSkills, setDisabledSkills] = useState<string[]>(() => loadDisabledSkills(localStorage.getItem(SKILL_ENABLED_KEY)));
-  const [mcpConnections, setMcpConnections] = useState<RemoteMcpConnection[]>(() => loadJSON(STORAGE_KEYS.mcpConnections, []));
+  const [mcpConnections, setMcpConnections] = useState<RemoteMcpConnection[]>(() => loadJSON<RemoteMcpConnection[]>(STORAGE_KEYS.mcpConnections, [], isObjectArray<RemoteMcpConnection>));
   const [showHistory, setShowHistory] = useState(false);
   const [showDashboard, setShowDashboard] = useState(false);
   const [showFeatures, setShowFeatures] = useState(false);
-  const [aiFeatures, setAiFeatures] = useState<AIFeature[]>(() => loadJSON(STORAGE_KEYS.aiFeatures, DEFAULT_AI_FEATURES));
-  const [workspaces, setWorkspaces] = useState<Workspace[]>(() => loadJSON(STORAGE_KEYS.workspaces, [{ id: 'default', name: 'Personal workspace', projects: [] }]));
+  const [aiFeatures, setAiFeatures] = useState<AIFeature[]>(() => loadJSON<AIFeature[]>(STORAGE_KEYS.aiFeatures, DEFAULT_AI_FEATURES, isObjectArray<AIFeature>));
+  const [workspaces, setWorkspaces] = useState<Workspace[]>(() => loadJSON<Workspace[]>(STORAGE_KEYS.workspaces, [{ id: 'default', name: 'Personal workspace', projects: [] }], isObjectArray<Workspace>));
   const abortRef = useRef<AbortController | null>(null);
 
   const activeProvider =
@@ -78,13 +78,27 @@ export default function App() {
     saveJSON(STORAGE_KEYS.systemPrompt, systemPrompt);
   }, [systemPrompt]);
 
-  useEffect(() => saveJSON(STORAGE_KEYS.providers, providers), [providers]);
-  useEffect(() => saveJSON(STORAGE_KEYS.activeProvider, activeProvider?.id ?? ''), [activeProvider]);
-  useEffect(() => saveJSON(STORAGE_KEYS.conversations, conversations), [conversations]);
-  useEffect(() => saveJSON(STORAGE_KEYS.mcpConnections, mcpConnections), [mcpConnections]);
-  useEffect(() => saveJSON(STORAGE_KEYS.agentSkills, skills), [skills]);
-  useEffect(() => saveJSON(STORAGE_KEYS.workspaces, workspaces), [workspaces]);
-  useEffect(() => saveJSON(STORAGE_KEYS.aiFeatures, aiFeatures), [aiFeatures]);
+  useEffect(() => {
+    saveJSON(STORAGE_KEYS.providers, providers);
+  }, [providers]);
+  useEffect(() => {
+    saveJSON(STORAGE_KEYS.activeProvider, activeProvider?.id ?? '');
+  }, [activeProvider]);
+  useEffect(() => {
+    saveJSON(STORAGE_KEYS.conversations, conversations);
+  }, [conversations]);
+  useEffect(() => {
+    saveJSON(STORAGE_KEYS.mcpConnections, mcpConnections);
+  }, [mcpConnections]);
+  useEffect(() => {
+    saveJSON(STORAGE_KEYS.agentSkills, skills);
+  }, [skills]);
+  useEffect(() => {
+    saveJSON(STORAGE_KEYS.workspaces, workspaces);
+  }, [workspaces]);
+  useEffect(() => {
+    saveJSON(STORAGE_KEYS.aiFeatures, aiFeatures);
+  }, [aiFeatures]);
 
   const activeMcpTools = activeConnections(mcpConnections).flatMap((c) => c.tools.map((t) => t.name));
 
@@ -178,8 +192,8 @@ export default function App() {
       .map((m) => ({ role: m.role, content: m.content }));
     const enabledFeatures = aiFeatures.filter((feature) => feature.enabled);
     if (skills.length > 0 || enabledFeatures.length > 0) {
-      const featureInstructions = enabledFeatures.map((feature) => `- ${feature.name}: ${feature.description}`).join('\\n');
-      history.unshift({ role: 'system', content: `You are MercuReal assistant. Apply these enabled behaviors when relevant:\\n${featureInstructions}\\n\\nInstalled skills:\\n${skills.map((skill) => `## ${skill.name}\\n${skill.instructions}`).join('\\n\\n')}` });
+      const featureInstructions = enabledFeatures.map((feature) => `- ${feature.name}: ${feature.description}`).join('\n');
+      history.unshift({ role: 'system', content: `You are MercuReal assistant. Apply these enabled behaviors when relevant:\n${featureInstructions}\n\nInstalled skills:\n${skills.map((skill) => `## ${skill.name}\n${skill.instructions}`).join('\n\n')}` });
     }
     // Bundled skills invoked with @slug in this message are stacked into the system message.
     const enabledBundled = BUNDLED_SKILLS.filter((s) => !disabledSkills.includes(s.slug));
@@ -211,14 +225,17 @@ export default function App() {
     try {
       const outcome = await runWithFallbackChain(
         attempts,
-        (a) =>
-          streamChat({ ...a.provider, model: a.model }, requestMessages, {
+        (a) => {
+          // A failed attempt may have streamed partial text. Clear it so the retry does not append to it.
+          setConversations((list) => updateMessage(list, convId, assistantId, (m) => ({ ...m, content: '' })));
+          return streamChat({ ...a.provider, model: a.model }, requestMessages, {
             signal: controller.signal,
             onDelta: (delta) =>
               setConversations((list) =>
                 updateMessage(list, convId, assistantId, (m) => ({ ...m, content: m.content + delta })),
               ),
-          }),
+          });
+        },
         () => controller.signal.aborted,
         labelOf,
       );
@@ -297,7 +314,7 @@ export default function App() {
       />
 
       <main className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-20 flex min-w-0 items-center gap-2 border-b border-white/60 bg-white/70 px-3 py-2 shadow-sm backdrop-blur-xl md:justify-between md:px-5 md:py-3 dark:border-white/10 dark:bg-slate-950/70">
+        <header className="sticky top-0 z-20 flex min-w-0 flex-wrap items-center gap-2 border-b border-white/60 bg-white/70 px-3 py-2 shadow-sm backdrop-blur-xl md:justify-between md:px-5 md:py-3 dark:border-white/10 dark:bg-slate-950/70">
           <button
             type="button"
             onClick={() => setShowHistory(true)}
@@ -313,7 +330,7 @@ export default function App() {
               {activeProvider ? `${activeProvider.name} · ${activeProvider.model}` : 'No provider'}
             </p>
           </div>
-          <div className="flex min-w-0 max-w-[60%] shrink items-center gap-1 overflow-x-auto whitespace-nowrap md:max-w-none md:shrink-0 md:gap-2 [&::-webkit-scrollbar]:hidden [scrollbar-width:none]">
+          <div className="flex min-w-0 w-full flex-wrap items-center justify-end gap-1.5 md:w-auto md:gap-2">
             <button
               type="button"
               onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}

@@ -7,6 +7,7 @@ import { buildBackup, parseBackup, restoreEntries, summarizeBackup, type BackupF
 import { DATA_PREFIX } from '../lib/backup';
 import type { AgentSkill, ProviderConfig } from '../lib/types';
 import type { BundledSkill } from '../lib/skills';
+import { useModal } from '../lib/useModal';
 
 export type HubTab = 'providers' | 'skills' | 'mcp' | 'chat' | 'appearance' | 'data';
 
@@ -53,6 +54,7 @@ const primary = 'min-h-11 rounded-md bg-indigo-600 px-4 text-sm font-medium text
 export function SettingsHub(props: SettingsHubProps) {
   const { tab, onTabChange, onClose } = props;
   const tabRefs = useRef<Record<string, HTMLButtonElement | null>>({});
+  const dialogRef = useModal(onClose);
 
   function onTabKey(e: React.KeyboardEvent, index: number) {
     if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
@@ -68,6 +70,8 @@ export function SettingsHub(props: SettingsHubProps) {
       role="dialog"
       aria-modal="true"
       aria-label="Settings"
+      ref={dialogRef}
+      tabIndex={-1}
     >
       <div className="flex h-dvh w-full flex-col bg-white/95 backdrop-blur-xl md:h-[88vh] md:max-w-3xl md:rounded-2xl md:border md:border-white/60 md:shadow-2xl dark:bg-slate-900/95 dark:md:border-white/10">
         <div className="flex items-center justify-between gap-2 border-b border-slate-200 px-4 py-3 md:px-5 dark:border-slate-800">

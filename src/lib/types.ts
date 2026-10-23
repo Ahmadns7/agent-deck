@@ -38,6 +38,15 @@ export interface Conversation {
 
 export type ProviderKind = 'openai' | 'anthropic';
 
+export interface AgentSkill {
+  id: string;
+  name: string;
+  sourceUrl: string;
+  description: string;
+  instructions: string;
+  installedAt: number;
+}
+
 export interface McpTool {
   id: string;
   name: string;

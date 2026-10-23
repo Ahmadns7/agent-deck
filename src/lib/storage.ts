@@ -4,6 +4,7 @@
  */
 export const STORAGE_KEYS = {
   mcpServers: 'agent-deck:mcp-servers',
+  agentSkills: 'agent-deck:agent-skills',
   providers: 'agent-deck:providers',
   activeProvider: 'agent-deck:active-provider',
   conversations: 'agent-deck:conversations',

@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import type { Conversation } from '../lib/types';
+import { allTags, parseTags, sortConversations, SORT_LABELS, type SortOrder } from '../lib/conversationList';
 
 interface SidebarProps {
   conversations: Conversation[];
@@ -12,15 +13,21 @@ interface SidebarProps {
   onDelete: (id: string) => void;
   onExport: (conversation: Conversation) => void;
   onSettings: () => void;
+  onToggleFlag: (id: string, flag: 'pinned' | 'favorite') => void;
+  onSetTags: (id: string, tags: string[]) => void;
 }
 
 // Below md the sidebar is an off-canvas drawer toggled from the header.
 // From md up it is a static column, exactly as before.
-export function Sidebar({ conversations, currentId, disabled, open, onClose, onSelect, onNew, onDelete, onExport, onSettings }: SidebarProps) {
+export function Sidebar({ conversations, currentId, disabled, open, onClose, onSelect, onNew, onDelete, onExport, onSettings, onToggleFlag, onSetTags }: SidebarProps) {
   const [query, setQuery] = useState('');
-  const sorted = useMemo(() => [...conversations]
-    .filter((conversation) => conversation.title.toLowerCase().includes(query.toLowerCase()) || conversation.messages.some((message) => message.content.toLowerCase().includes(query.toLowerCase())))
-    .sort((a, b) => b.updatedAt - a.updatedAt), [conversations, query]);
+  const [sort, setSort] = useState<SortOrder>('recent');
+  const [tagFilter, setTagFilter] = useState<string | null>(null);
+  const tags = useMemo(() => allTags(conversations), [conversations]);
+  const sorted = useMemo(() => sortConversations(conversations
+    .filter((c) => (tagFilter === null || (c.tags ?? []).includes(tagFilter)))
+    .filter((conversation) => conversation.title.toLowerCase().includes(query.toLowerCase()) || conversation.messages.some((message) => message.content.toLowerCase().includes(query.toLowerCase()))),
+    sort), [conversations, query, sort, tagFilter]);
 
   return (
     <aside
@@ -52,6 +59,19 @@ export function Sidebar({ conversations, currentId, disabled, open, onClose, onS
       </div>
       <div className="px-3 pb-2">
         <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search chats" aria-label="Search chats" className="min-h-11 w-full rounded-xl border border-slate-300/80 bg-white/60 px-3 text-base outline-none transition-colors duration-200 focus:border-indigo-500 md:min-h-10 md:text-sm dark:border-white/10 dark:bg-slate-950/50" />
+        <div className="mt-2 flex items-center gap-2">
+          <label className="sr-only" htmlFor="sidebar-sort">Sort chats</label>
+          <select id="sidebar-sort" value={sort} onChange={(event) => setSort(event.target.value as SortOrder)} className="min-h-9 flex-1 rounded-md border border-slate-300 bg-white px-2 text-xs dark:border-slate-700 dark:bg-slate-950">
+            {(Object.keys(SORT_LABELS) as SortOrder[]).map((key) => <option key={key} value={key}>{SORT_LABELS[key]}</option>)}
+          </select>
+        </div>
+        {tags.length > 0 && (
+          <div className="mt-2 flex flex-wrap gap-1" aria-label="Filter by tag">
+            {tags.map((tag) => (
+              <button key={tag} type="button" onClick={() => setTagFilter(tagFilter === tag ? null : tag)} aria-pressed={tagFilter === tag} className={`rounded-full px-2 py-0.5 text-[11px] ${tagFilter === tag ? 'bg-indigo-600 text-white' : 'bg-slate-200 dark:bg-slate-800'}`}>#{tag}</button>
+            ))}
+          </div>
+        )}
       </div>
       <nav className="flex-1 overflow-y-auto px-2 pb-3">
         {sorted.length === 0 && <p className="px-2 py-3 text-xs text-slate-500">No conversations yet.</p>}
@@ -69,8 +89,11 @@ export function Sidebar({ conversations, currentId, disabled, open, onClose, onS
                     : 'hover:bg-slate-100 dark:hover:bg-slate-800/70'
                 }`}
               >
-                {c.title}
+                {c.pinned ? '📌 ' : ''}{c.favorite ? '★ ' : ''}{c.title}
               </button>
+              <button type="button" aria-label={c.pinned ? 'Unpin' : 'Pin'} onClick={() => onToggleFlag(c.id, 'pinned')} className="min-h-11 w-9 rounded-md text-xs text-slate-500 hover:bg-slate-100 md:min-h-0 dark:hover:bg-slate-800">{c.pinned ? 'unpin' : 'pin'}</button>
+              <button type="button" aria-label={c.favorite ? 'Unfavorite' : 'Favorite'} onClick={() => onToggleFlag(c.id, 'favorite')} className="min-h-11 w-9 rounded-md text-xs text-slate-500 hover:bg-slate-100 md:min-h-0 dark:hover:bg-slate-800">{c.favorite ? '★' : '☆'}</button>
+              <button type="button" aria-label="Edit tags" onClick={() => { const next = window.prompt('Tags, comma separated', (c.tags ?? []).join(', ')); if (next !== null) onSetTags(c.id, parseTags(next)); }} className="min-h-11 w-9 rounded-md text-xs text-slate-500 hover:bg-slate-100 md:min-h-0 dark:hover:bg-slate-800">#</button>
               <button type="button" onClick={() => onExport(c)} aria-label={`Export ${c.title}`} className="hidden px-1 text-xs text-slate-500 hover:text-indigo-500 md:group-hover:block">↗</button>
               <button
                 type="button"

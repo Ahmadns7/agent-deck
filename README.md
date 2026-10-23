@@ -183,3 +183,71 @@ Run `npm run lint && npm test && npm run build` before opening a pull request. C
 ## License
 
 MIT. See [LICENSE](LICENSE).
+
+
+## MCP
+
+agent-deck bundles a catalog of 50 web-development MCP (Model Context Protocol) servers. Open the MCP panel in settings to browse them. Each entry has a config snippet you can copy into your own MCP client (Claude Desktop, Cursor, VS Code, and so on).
+
+| # | Name | Category | Transport | Description |
+|---|---|---|---|---|
+| 1 | Filesystem | reference | stdio | Read, write and search files inside directories you allow. |
+| 2 | Fetch | web | stdio | Fetch any URL and convert the page to markdown for the model. |
+| 3 | Memory | reference | stdio | Persistent knowledge-graph memory across sessions. |
+| 4 | Sequential thinking | reference | stdio | Structured step-by-step reasoning scaffold for hard problems. |
+| 5 | Time | utility | stdio | Current time and timezone conversion. |
+| 6 | Git | git | stdio | Read, search, diff and commit in a local git repository. |
+| 7 | GitHub | git | http | Repos, issues, pull requests, Actions and code search (hosted by GitHub). |
+| 8 | GitLab | git | stdio | GitLab projects, merge requests, issues and pipelines. |
+| 9 | PostgreSQL | database | stdio | Read-only SQL queries and schema inspection on PostgreSQL. |
+| 10 | SQLite | database | stdio | Query and inspect a local SQLite database file. |
+| 11 | MySQL | database | stdio | Run queries and inspect tables on a MySQL database. |
+| 12 | MongoDB | database | stdio | Query collections and manage indexes on MongoDB. |
+| 13 | Neon | database | stdio | Manage Neon Postgres projects, branches and SQL. |
+| 14 | Prisma | database | stdio | Prisma schema, migrations and Prisma Postgres management. |
+| 15 | Airtable | database | stdio | Read and write Airtable bases, tables and records. |
+| 16 | Supabase | backend | http | Supabase projects: tables, SQL, edge functions, logs and advisors (hosted). |
+| 17 | Vercel | hosting | http | Vercel projects, deployments, logs and docs search (hosted, OAuth). |
+| 18 | Netlify | hosting | stdio | Netlify sites, deploys and functions via the Netlify MCP. |
+| 19 | Playwright | browser | stdio | Drive a real browser with accessibility snapshots for end-to-end checks. |
+| 20 | Puppeteer | browser | stdio | Chrome automation: navigate, click, fill forms and take screenshots. |
+| 21 | Chrome DevTools | browser | stdio | DevTools access: performance traces, network and console for debugging pages. |
+| 22 | Figma | design | http | Read Figma files, frames and design tokens into code (hosted, OAuth). |
+| 23 | Figma (Framelink) | design | stdio | Community Figma server: layout and styling data from Figma files. |
+| 24 | shadcn/ui | ui | stdio | Browse, search and install shadcn/ui components into your project. |
+| 25 | ESLint | quality | stdio | Lint files and apply ESLint fixes from the model. |
+| 26 | Sentry | monitoring | http | Search errors, analyze issues and read performance data (hosted, OAuth). |
+| 27 | Jira | project | stdio | Atlassian Jira issues, boards and sprints. |
+| 28 | Notion | docs | stdio | Search and edit Notion pages and databases. |
+| 29 | Context7 | docs | stdio | Up-to-date library documentation and code examples pulled into context. |
+| 30 | MarkItDown | docs | stdio | Convert PDFs, Office files and HTML into markdown. |
+| 31 | AWS documentation | cloud | stdio | Search and read official AWS documentation. |
+| 32 | Brave Search | search | stdio | Web and local search through the Brave Search API. |
+| 33 | Exa | search | stdio | Semantic web search and page contents via Exa. |
+| 34 | Tavily | search | stdio | Search and extract web content for research tasks. |
+| 35 | Perplexity | search | stdio | Sourced answers and web search through Perplexity. |
+| 36 | Firecrawl | web | stdio | Scrape, crawl and map websites into clean markdown. |
+| 37 | Google Maps | search | stdio | Geocoding, places and directions. |
+| 38 | OpenAPI | api | stdio | Turn any OpenAPI spec into callable tools for an API. |
+| 39 | Postman | api | stdio | Postman collections, environments and API requests. |
+| 40 | Stripe | payments | stdio | Stripe customers, payments, products and docs. |
+| 41 | Resend | email | stdio | Send transactional email and manage domains with Resend. |
+| 42 | Slack | comms | stdio | Read channels and post messages in Slack. |
+| 43 | Semgrep | security | stdio | Static analysis and security scans with Semgrep rules. |
+| 44 | Snyk | security | stdio | Dependency and code vulnerability scans through Snyk. |
+| 45 | Mermaid | diagram | stdio | Render Mermaid diagrams (flowcharts, sequence diagrams) to images. |
+| 46 | Chroma | vector | stdio | Store and query embeddings in a Chroma vector database. |
+| 47 | Qdrant | vector | stdio | Semantic search and storage on a Qdrant vector database. |
+| 48 | E2B sandbox | sandbox | stdio | Run code and dev servers in isolated E2B cloud sandboxes. |
+| 49 | MDN Web Docs | docs | stdio | Search and read MDN Web Docs for HTML, CSS and JavaScript references. |
+| 50 | Everything (reference test server) | testing | stdio | Reference server that exercises every MCP feature, useful to test a client. |
+
+Browser limitation. agent-deck runs entirely in the browser. Browsers cannot spawn local processes, so stdio servers (the npx and uvx entries above) cannot run inside agent-deck. They are reference only. Only streamable HTTP servers with a remote URL can be connected from the app.
+
+Connecting a remote server. Open settings, then MCP, then Connections. Enter a name, the https URL of the server's MCP endpoint, and an optional auth header as a raw line such as Authorization: Bearer YOUR_KEY. Save, then enable the connection. agent-deck sends initialize and tools/list over JSON-RPC to discover its tools.
+
+Using the tools in chat. Enabled connections with discovered tools are listed to the model in a system note. Type /mcp to list connections and their tools. Type /mcp call TOOL {"arg": "value"} to run one tool directly. Commands run locally and make no model call. @mcp works the same way.
+
+CORS. The remote server must send CORS headers that allow the agent-deck origin. If it does not, the browser blocks the request and agent-deck shows a CORS error. Servers that do not allow browser origins cannot be used from agent-deck.
+
+Keys and privacy. Auth headers are stored in localStorage on this device, unencrypted, like other keys in agent-deck. Use keys with spending limits. Only the configured endpoint receives your request.

@@ -5,7 +5,7 @@ import { SettingsPanel } from './components/SettingsPanel';
 import { McpPanel } from './components/McpPanel';
 import { SkillsPanel } from './components/SkillsPanel';
 import { BUNDLED_SKILLS, SKILL_ENABLED_KEY, buildSkillPrompt, injectSkillPrompt, loadDisabledSkills, parseInvocations } from './lib/skills';
-import { DEFAULT_MCP_SERVERS, enabledMcpTools } from './lib/mcp';
+import { activeConnections, buildToolsNote, callTool, parseMcpCommand, runMcpCommand, type RemoteMcpConnection } from './mcp';
 import { StatsDisclosure, StatsPanel } from './components/StatsPanel';
 import { DashboardPanel } from './components/DashboardPanel';
 import { FeatureHub } from './components/FeatureHub';
@@ -47,7 +47,7 @@ export default function App() {
   const [showSkills, setShowSkills] = useState(false);
   const [skills, setSkills] = useState<AgentSkill[]>(() => loadJSON(STORAGE_KEYS.agentSkills, []));
   const [disabledSkills, setDisabledSkills] = useState<string[]>(() => loadDisabledSkills(localStorage.getItem(SKILL_ENABLED_KEY)));
-  const [mcpServers, setMcpServers] = useState(() => loadJSON(STORAGE_KEYS.mcpServers, DEFAULT_MCP_SERVERS));
+  const [mcpConnections, setMcpConnections] = useState<RemoteMcpConnection[]>(() => loadJSON(STORAGE_KEYS.mcpConnections, []));
   const [showHistory, setShowHistory] = useState(false);
   const [showDashboard, setShowDashboard] = useState(false);
   const [showFeatures, setShowFeatures] = useState(false);
@@ -67,12 +67,12 @@ export default function App() {
   useEffect(() => saveJSON(STORAGE_KEYS.providers, providers), [providers]);
   useEffect(() => saveJSON(STORAGE_KEYS.activeProvider, activeProvider?.id ?? ''), [activeProvider]);
   useEffect(() => saveJSON(STORAGE_KEYS.conversations, conversations), [conversations]);
-  useEffect(() => saveJSON(STORAGE_KEYS.mcpServers, mcpServers), [mcpServers]);
+  useEffect(() => saveJSON(STORAGE_KEYS.mcpConnections, mcpConnections), [mcpConnections]);
   useEffect(() => saveJSON(STORAGE_KEYS.agentSkills, skills), [skills]);
   useEffect(() => saveJSON(STORAGE_KEYS.workspaces, workspaces), [workspaces]);
   useEffect(() => saveJSON(STORAGE_KEYS.aiFeatures, aiFeatures), [aiFeatures]);
 
-  const activeMcpTools = enabledMcpTools(mcpServers);
+  const activeMcpTools = activeConnections(mcpConnections).flatMap((c) => c.tools.map((t) => t.name));
 
   function newChat() {
     if (streaming) return;
@@ -104,6 +104,23 @@ export default function App() {
   async function send() {
     const text = draft.trim();
     if ((!text && attachments.length === 0) || streaming || !activeProvider) return;
+
+    // /mcp and @mcp list connections; /mcp call <server> <tool> [json] runs a tool. No model call.
+    const mcpCommand = attachments.length === 0 ? parseMcpCommand(text) : null;
+    if (mcpCommand) {
+      const convId = currentId ?? uid();
+      const reply = await runMcpCommand(mcpCommand, mcpConnections, callTool);
+      const userMsg: StoredMessage = { id: uid(), role: 'user', content: text };
+      const replyMsg: StoredMessage = { id: uid(), role: 'assistant', content: reply };
+      setConversations((list) => {
+        const base: Conversation = list.find((c) => c.id === convId) ?? { id: convId, title: titleFrom(text), providerId: activeProvider.id, createdAt: Date.now(), updatedAt: Date.now(), messages: [] };
+        const next: Conversation = { ...base, updatedAt: Date.now(), messages: [...base.messages, userMsg, replyMsg] };
+        return list.some((c) => c.id === convId) ? updateConversation(list, convId, () => next) : [next, ...list];
+      });
+      setCurrentId(convId);
+      setDraft('');
+      return;
+    }
 
     const convId = currentId ?? uid();
     const sent = attachments;
@@ -156,6 +173,8 @@ export default function App() {
     const skillPrompt = buildSkillPrompt(invoked, enabledBundled);
     const withSkills = injectSkillPrompt(history, skillPrompt);
     history.splice(0, history.length, ...withSkills);
+    // Enabled remote MCP tools are listed to the model in a system note.
+    history.splice(0, history.length, ...injectSkillPrompt(history, buildToolsNote(mcpConnections)));
     history.push({ role: 'user', content: buildUserContent(text, sent) });
 
     // Only the request is trimmed. The stored conversation keeps every message.
@@ -340,7 +359,7 @@ export default function App() {
             onPromptSelect={setDraft}
             skills={BUNDLED_SKILLS.filter((s) => !disabledSkills.includes(s.slug))}
             streaming={streaming}
-            mcpTools={activeMcpTools.map((tool) => tool.name)}
+            mcpTools={activeMcpTools}
             providerReady={
               Boolean(activeProvider?.apiKey) ||
               (activeProvider?.kind === 'openai' && activeProvider.baseUrl.includes('localhost'))
@@ -353,7 +372,7 @@ export default function App() {
       {showFeatures && <FeatureHub features={aiFeatures} onChange={setAiFeatures} onClose={() => setShowFeatures(false)} />}
       {showDashboard && <DashboardPanel conversations={conversations} workspaces={workspaces} onWorkspacesChange={setWorkspaces} onClose={() => setShowDashboard(false)} />}
       {showSkills && <SkillsPanel skills={skills} onChange={setSkills} bundled={BUNDLED_SKILLS} disabled={disabledSkills} onDisabledChange={(next) => { setDisabledSkills(next); localStorage.setItem(SKILL_ENABLED_KEY, JSON.stringify(next)); }} onClose={() => setShowSkills(false)} />}
-      {showMcp && <McpPanel servers={mcpServers} onChange={setMcpServers} onClose={() => setShowMcp(false)} />}
+      {showMcp && <McpPanel connections={mcpConnections} onChange={setMcpConnections} onClose={() => setShowMcp(false)} />}
 
       {showSettings && (
         <SettingsPanel

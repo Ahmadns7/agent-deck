@@ -90,21 +90,6 @@ export interface AgentSkill {
   installedAt: number;
 }
 
-export interface McpTool {
-  id: string;
-  name: string;
-  description: string;
-  enabled: boolean;
-}
-
-export interface McpServer {
-  id: string;
-  name: string;
-  url: string;
-  status: 'available' | 'offline';
-  tools: McpTool[];
-}
-
 export interface AIFeature {
   id: string;
   name: string;
@@ -141,6 +126,10 @@ export interface ProviderConfig {
   contextBudget?: number;
   /** Other configured providers + models tried, in order, after this provider's own models all hit a limit. */
   crossProviderFallbacks?: ModelRef[];
+  /** Sampling temperature. Undefined means the provider default (not sent). */
+  temperature?: number;
+  /** Max output tokens. Undefined means the provider default (Anthropic 1024, others not sent). */
+  maxTokens?: number;
 }
 
 /** A provider the user configured, plus one of its models. */

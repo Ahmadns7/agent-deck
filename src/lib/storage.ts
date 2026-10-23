@@ -3,7 +3,7 @@
  * provider list and never leave the browser except in requests to that provider.
  */
 export const STORAGE_KEYS = {
-  mcpServers: 'agent-deck:mcp-servers',
+  mcpConnections: 'agent-deck:mcp-connections',
   agentSkills: 'agent-deck:agent-skills',
   workspaces: 'agent-deck:workspaces',
   aiFeatures: 'agent-deck:ai-features',
@@ -11,6 +11,8 @@ export const STORAGE_KEYS = {
   activeProvider: 'agent-deck:active-provider',
   conversations: 'agent-deck:conversations',
   theme: 'agent-deck:theme',
+  systemPrompt: 'agent-deck:system-prompt',
+  fontSize: 'agent-deck:font-size',
 } as const;
 
 export function loadJSON<T>(key: string, fallback: T): T {

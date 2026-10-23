@@ -4,6 +4,7 @@ import { Sidebar } from './components/Sidebar';
 import { SettingsPanel } from './components/SettingsPanel';
 import { McpPanel } from './components/McpPanel';
 import { SkillsPanel } from './components/SkillsPanel';
+import { BUNDLED_SKILLS, SKILL_ENABLED_KEY, buildSkillPrompt, injectSkillPrompt, loadDisabledSkills, parseInvocations } from './lib/skills';
 import { DEFAULT_MCP_SERVERS, enabledMcpTools } from './lib/mcp';
 import { StatsDisclosure, StatsPanel } from './components/StatsPanel';
 import { DashboardPanel } from './components/DashboardPanel';
@@ -45,6 +46,7 @@ export default function App() {
   const [showMcp, setShowMcp] = useState(false);
   const [showSkills, setShowSkills] = useState(false);
   const [skills, setSkills] = useState<AgentSkill[]>(() => loadJSON(STORAGE_KEYS.agentSkills, []));
+  const [disabledSkills, setDisabledSkills] = useState<string[]>(() => loadDisabledSkills(localStorage.getItem(SKILL_ENABLED_KEY)));
   const [mcpServers, setMcpServers] = useState(() => loadJSON(STORAGE_KEYS.mcpServers, DEFAULT_MCP_SERVERS));
   const [showHistory, setShowHistory] = useState(false);
   const [showDashboard, setShowDashboard] = useState(false);
@@ -148,6 +150,12 @@ export default function App() {
       const featureInstructions = enabledFeatures.map((feature) => `- ${feature.name}: ${feature.description}`).join('\\n');
       history.unshift({ role: 'system', content: `You are MercuReal assistant. Apply these enabled behaviors when relevant:\\n${featureInstructions}\\n\\nInstalled skills:\\n${skills.map((skill) => `## ${skill.name}\\n${skill.instructions}`).join('\\n\\n')}` });
     }
+    // Bundled skills invoked with @slug in this message are stacked into the system message.
+    const enabledBundled = BUNDLED_SKILLS.filter((s) => !disabledSkills.includes(s.slug));
+    const invoked = parseInvocations(text, enabledBundled);
+    const skillPrompt = buildSkillPrompt(invoked, enabledBundled);
+    const withSkills = injectSkillPrompt(history, skillPrompt);
+    history.splice(0, history.length, ...withSkills);
     history.push({ role: 'user', content: buildUserContent(text, sent) });
 
     // Only the request is trimmed. The stored conversation keeps every message.
@@ -329,6 +337,7 @@ export default function App() {
             onSend={send}
             onStop={stop}
             onPromptSelect={setDraft}
+            skills={BUNDLED_SKILLS.filter((s) => !disabledSkills.includes(s.slug))}
             streaming={streaming}
             mcpTools={activeMcpTools.map((tool) => tool.name)}
             providerReady={
@@ -342,7 +351,7 @@ export default function App() {
 
       {showFeatures && <FeatureHub features={aiFeatures} onChange={setAiFeatures} onClose={() => setShowFeatures(false)} />}
       {showDashboard && <DashboardPanel conversations={conversations} workspaces={workspaces} onWorkspacesChange={setWorkspaces} onClose={() => setShowDashboard(false)} />}
-      {showSkills && <SkillsPanel skills={skills} onChange={setSkills} onClose={() => setShowSkills(false)} />}
+      {showSkills && <SkillsPanel skills={skills} onChange={setSkills} bundled={BUNDLED_SKILLS} disabled={disabledSkills} onDisabledChange={(next) => { setDisabledSkills(next); localStorage.setItem(SKILL_ENABLED_KEY, JSON.stringify(next)); }} onClose={() => setShowSkills(false)} />}
       {showMcp && <McpPanel servers={mcpServers} onChange={setMcpServers} onClose={() => setShowMcp(false)} />}
 
       {showSettings && (

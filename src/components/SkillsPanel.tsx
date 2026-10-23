@@ -1,10 +1,14 @@
 import { useState } from 'react';
 import { uid } from '../lib/id';
 import type { AgentSkill } from '../lib/types';
+import type { BundledSkill } from '../lib/skills';
 
 interface SkillsPanelProps {
   skills: AgentSkill[];
   onChange: (skills: AgentSkill[]) => void;
+  bundled: BundledSkill[];
+  disabled: string[];
+  onDisabledChange: (next: string[]) => void;
   onClose: () => void;
 }
 
@@ -20,7 +24,7 @@ function rawCandidates(url: URL) {
   ];
 }
 
-export function SkillsPanel({ skills, onChange, onClose }: SkillsPanelProps) {
+export function SkillsPanel({ skills, onChange, bundled, disabled, onDisabledChange, onClose }: SkillsPanelProps) {
   const [url, setUrl] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -59,7 +63,27 @@ export function SkillsPanel({ skills, onChange, onClose }: SkillsPanelProps) {
     <div className="w-full max-w-2xl rounded-t-xl border border-slate-200 bg-white shadow-xl dark:border-slate-800 dark:bg-slate-900 md:rounded-lg">
       <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3 dark:border-slate-800"><div><h2 className="font-semibold">Agent skills</h2><p className="text-xs text-slate-500">Install real skill instructions from GitHub.</p></div><button type="button" onClick={onClose} className="min-h-11 px-3 text-sm text-slate-500">Close</button></div>
       <div className="space-y-4 p-4 md:p-5">
-        <div className="flex flex-col gap-2 sm:flex-row"><input value={url} onChange={(e) => setUrl(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter' && !e.nativeEvent.isComposing) void install(); }} placeholder="https://github.com/owner/repo" aria-label="GitHub skill URL" className="min-h-11 min-w-0 flex-1 rounded-md border border-slate-300 bg-white px-3 text-base dark:border-slate-700 dark:bg-slate-950" /><button type="button" onClick={() => void install()} disabled={busy || !url.trim()} className="min-h-11 rounded-md bg-indigo-600 px-4 text-sm font-medium text-white disabled:opacity-50">{busy ? 'Installing…' : 'Install skill'}</button></div>
+        <div>
+          <h3 className="mb-2 text-sm font-semibold">Bundled web-dev skills ({bundled.length})</h3>
+          <p className="mb-2 text-xs text-slate-500">Invoke in chat with @slug, for example @react-hooks. Toggle to disable.</p>
+          <div className="max-h-72 overflow-auto rounded-md border border-slate-200 dark:border-slate-800">
+            <table className="w-full text-left text-xs">
+              <thead className="sticky top-0 bg-slate-50 dark:bg-slate-950"><tr><th className="px-2 py-1">Name</th><th className="px-2 py-1">Category</th><th className="px-2 py-1">Description</th><th className="px-2 py-1">On</th></tr></thead>
+              <tbody>{bundled.map((skill) => {
+                const on = !disabled.includes(skill.slug);
+                return <tr key={skill.slug} className="border-t border-slate-200 align-top dark:border-slate-800">
+                  <td className="px-2 py-1 font-mono">@{skill.slug}</td>
+                  <td className="px-2 py-1">{skill.category}</td>
+                  <td className="px-2 py-1 text-slate-500">{skill.description}</td>
+                  <td className="px-2 py-1"><input type="checkbox" aria-label={`Enable ${skill.name}`} checked={on} onChange={() => onDisabledChange(on ? [...disabled, skill.slug] : disabled.filter((x) => x !== skill.slug))} /></td>
+                </tr>;
+              })}</tbody>
+            </table>
+          </div>
+        </div>
+        <h3 className="text-sm font-semibold">Installed from GitHub</h3>
+        <div className="flex flex-col gap-2 sm:flex-row">
+<input value={url} onChange={(e) => setUrl(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter' && !e.nativeEvent.isComposing) void install(); }} placeholder="https://github.com/owner/repo" aria-label="GitHub skill URL" className="min-h-11 min-w-0 flex-1 rounded-md border border-slate-300 bg-white px-3 text-base dark:border-slate-700 dark:bg-slate-950" /><button type="button" onClick={() => void install()} disabled={busy || !url.trim()} className="min-h-11 rounded-md bg-indigo-600 px-4 text-sm font-medium text-white disabled:opacity-50">{busy ? 'Installing…' : 'Install skill'}</button></div>
         {error && <p className="text-sm text-red-500" role="alert">{error}</p>}
         <div className="space-y-2">{skills.length === 0 ? <p className="text-sm text-slate-500">No skills installed yet.</p> : skills.map((skill) => <div key={skill.id} className="flex items-start justify-between gap-3 rounded-md border border-slate-200 p-3 dark:border-slate-800"><div className="min-w-0"><p className="font-medium">{skill.name}</p><p className="truncate text-xs text-slate-500">{skill.description}</p></div><button type="button" onClick={() => onChange(skills.filter((item) => item.id !== skill.id))} className="text-xs text-red-500">Remove</button></div>)}</div>
       </div>

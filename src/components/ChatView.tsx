@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
 import type { Attachment, StoredMessage } from '../lib/types';
 import { readAttachment } from '../lib/attachments';
+import { activeMention, filterSkills, type BundledSkill } from '../lib/skills';
 import { contentText } from '../lib/attachments';
 
 interface ChatViewProps {
@@ -15,6 +16,7 @@ interface ChatViewProps {
   streaming: boolean;
   mcpTools: string[];
   providerReady: boolean;
+  skills?: BundledSkill[];
 }
 
 export function ChatView({
@@ -29,9 +31,22 @@ export function ChatView({
   streaming,
   mcpTools,
   providerReady,
+  skills = [],
 }: ChatViewProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  const [caret, setCaret] = useState(-1);
+  const [suggestIdx, setSuggestIdx] = useState(0);
+  // @mention autocomplete: shows matching bundled skills while the caret sits inside an @token.
+  const mention = caret >= 0 ? activeMention(draft, caret) : null;
+  const suggestions = mention ? filterSkills(skills, mention.query) : [];
+
+  function pickSkill(skill: BundledSkill | undefined) {
+    if (!skill || !mention) return;
+    const after = draft.slice(mention.start + 1 + mention.query.length);
+    onDraftChange(`${draft.slice(0, mention.start)}@${skill.slug} ${after.replace(/^\s+/, '')}`);
+    setCaret(-1);
+  }
 
   async function addFiles(files: FileList | null) {
     if (!files || files.length === 0) return;
@@ -80,13 +95,25 @@ export function ChatView({
       </div>
 
       <form
-        className="border-t border-slate-200 p-3 md:p-4 dark:border-slate-800"
+        className="relative border-t border-slate-200 p-3 md:p-4 dark:border-slate-800"
         onSubmit={(e) => {
           e.preventDefault();
           if (streaming) onStop();
           else onSend();
         }}
       >
+        {suggestions.length > 0 && (
+          <ul role="listbox" aria-label="Skills" className="absolute bottom-full left-3 right-3 mb-1 max-h-60 overflow-auto rounded-md border border-slate-200 bg-white shadow-lg md:left-4 md:right-4 dark:border-slate-700 dark:bg-slate-900">
+            {suggestions.map((skill, i) => (
+              <li key={skill.slug} role="option" aria-selected={i === suggestIdx}>
+                <button type="button" onMouseDown={(e) => { e.preventDefault(); pickSkill(skill); }} className={`flex w-full flex-col px-3 py-2 text-left text-sm ${i === suggestIdx ? 'bg-indigo-50 dark:bg-slate-800' : ''}`}>
+                  <span className="font-mono text-xs text-indigo-600 dark:text-indigo-400">@{skill.slug}</span>
+                  <span className="truncate text-xs text-slate-500">{skill.name} · {skill.category}</span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
         {mcpTools.length > 0 && <p className="mb-2 text-xs text-slate-500">MCP tools enabled: {mcpTools.join(', ')}</p>}
         {!providerReady && (
           <p className="mb-2 text-xs text-amber-600 dark:text-amber-400">
@@ -137,8 +164,16 @@ export function ChatView({
           </button>
           <textarea
             value={draft}
-            onChange={(e) => onDraftChange(e.target.value)}
-            onKeyDown={onKeyDown}
+            onChange={(e) => { onDraftChange(e.target.value); setCaret(e.target.selectionStart ?? e.target.value.length); }}
+            onKeyDown={(e) => {
+              if (mention && suggestions.length > 0) {
+                if (e.key === 'ArrowDown') { e.preventDefault(); setSuggestIdx((i) => (i + 1) % suggestions.length); return; }
+                if (e.key === 'ArrowUp') { e.preventDefault(); setSuggestIdx((i) => (i - 1 + suggestions.length) % suggestions.length); return; }
+                if (e.key === 'Enter' || e.key === 'Tab') { e.preventDefault(); pickSkill(suggestions[suggestIdx]); return; }
+                if (e.key === 'Escape') { e.preventDefault(); setCaret(-1); return; }
+              }
+              onKeyDown(e);
+            }}
             rows={2}
             placeholder="Message (Enter to send, Shift+Enter for newline)"
             aria-label="Message"

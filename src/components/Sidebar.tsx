@@ -1,3 +1,4 @@
+import { useMemo, useState } from 'react';
 import type { Conversation } from '../lib/types';
 
 interface SidebarProps {
@@ -9,12 +10,16 @@ interface SidebarProps {
   onSelect: (id: string) => void;
   onNew: () => void;
   onDelete: (id: string) => void;
+  onExport: (conversation: Conversation) => void;
 }
 
 // Below md the sidebar is an off-canvas drawer toggled from the header.
 // From md up it is a static column, exactly as before.
-export function Sidebar({ conversations, currentId, disabled, open, onClose, onSelect, onNew, onDelete }: SidebarProps) {
-  const sorted = [...conversations].sort((a, b) => b.updatedAt - a.updatedAt);
+export function Sidebar({ conversations, currentId, disabled, open, onClose, onSelect, onNew, onDelete, onExport }: SidebarProps) {
+  const [query, setQuery] = useState('');
+  const sorted = useMemo(() => [...conversations]
+    .filter((conversation) => conversation.title.toLowerCase().includes(query.toLowerCase()) || conversation.messages.some((message) => message.content.toLowerCase().includes(query.toLowerCase())))
+    .sort((a, b) => b.updatedAt - a.updatedAt), [conversations, query]);
 
   return (
     <aside
@@ -40,7 +45,13 @@ export function Sidebar({ conversations, currentId, disabled, open, onClose, onS
           ✕
         </button>
       </div>
-      <div className="px-3 pb-1 text-xs font-medium uppercase tracking-wide text-slate-500">History</div>
+      <div className="flex items-center justify-between px-3 pb-1">
+        <div className="text-xs font-medium uppercase tracking-wide text-slate-500">History</div>
+        <span className="text-[11px] text-slate-400">{conversations.length}</span>
+      </div>
+      <div className="px-3 pb-2">
+        <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search chats" aria-label="Search chats" className="min-h-10 w-full rounded-md border border-slate-300 bg-transparent px-3 text-sm outline-none focus:border-indigo-500 dark:border-slate-700" />
+      </div>
       <nav className="flex-1 overflow-y-auto px-2 pb-3">
         {sorted.length === 0 && <p className="px-2 py-3 text-xs text-slate-500">No conversations yet.</p>}
         <ul className="space-y-1">
@@ -59,6 +70,7 @@ export function Sidebar({ conversations, currentId, disabled, open, onClose, onS
               >
                 {c.title}
               </button>
+              <button type="button" onClick={() => onExport(c)} aria-label={`Export ${c.title}`} className="hidden px-1 text-xs text-slate-500 hover:text-indigo-500 md:group-hover:block">↗</button>
               <button
                 type="button"
                 onClick={() => onDelete(c.id)}

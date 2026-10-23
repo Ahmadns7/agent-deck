@@ -74,6 +74,17 @@ export default function App() {
     setDraft('');
   }
 
+  function exportConversation(conversation: Conversation) {
+    const markdown = `# ${conversation.title}\n\n${conversation.messages.map((message) => `## ${message.role === 'user' ? 'You' : 'Assistant'}\n\n${message.content}`).join('\n\n')}`;
+    const blob = new Blob([markdown], { type: 'text/markdown' });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = `${conversation.title.replace(/[^a-z0-9]+/gi, '-').toLowerCase() || 'conversation'}.md`;
+    anchor.click();
+    URL.revokeObjectURL(url);
+  }
+
   function deleteConversation(id: string) {
     if (streaming && id === currentId) return;
     setConversations((list) => list.filter((c) => c.id !== id));
@@ -191,6 +202,7 @@ export default function App() {
           setShowHistory(false);
         }}
         onDelete={deleteConversation}
+        onExport={exportConversation}
       />
 
       <main className="flex min-w-0 flex-1 flex-col">
@@ -266,6 +278,7 @@ export default function App() {
             onDraftChange={setDraft}
             onSend={send}
             onStop={stop}
+            onPromptSelect={setDraft}
             streaming={streaming}
             mcpTools={activeMcpTools.map((tool) => tool.name)}
             providerReady={

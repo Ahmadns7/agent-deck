@@ -62,6 +62,19 @@ export interface McpServer {
   tools: McpTool[];
 }
 
+export interface WorkspaceProject {
+  id: string;
+  name: string;
+  description: string;
+  updatedAt: number;
+}
+
+export interface Workspace {
+  id: string;
+  name: string;
+  projects: WorkspaceProject[];
+}
+
 export interface ProviderConfig {
   id: string;
   name: string;

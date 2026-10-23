@@ -6,12 +6,13 @@ import { McpPanel } from './components/McpPanel';
 import { SkillsPanel } from './components/SkillsPanel';
 import { DEFAULT_MCP_SERVERS, enabledMcpTools } from './lib/mcp';
 import { StatsDisclosure, StatsPanel } from './components/StatsPanel';
+import { DashboardPanel } from './components/DashboardPanel';
 import { PROVIDER_PRESETS } from './lib/providers';
 import { lastStatsMessage, titleFrom, updateConversation, updateMessage } from './lib/conversations';
 import { loadJSON, saveJSON, STORAGE_KEYS } from './lib/storage';
 import { streamChat } from './lib/stream';
 import { uid } from './lib/id';
-import type { AgentSkill, ChatMessage, Conversation, ProviderConfig, StoredMessage } from './lib/types';
+import type { AgentSkill, ChatMessage, Conversation, ProviderConfig, StoredMessage, Workspace } from './lib/types';
 
 type Theme = 'dark' | 'light';
 
@@ -40,6 +41,8 @@ export default function App() {
   const [skills, setSkills] = useState<AgentSkill[]>(() => loadJSON(STORAGE_KEYS.agentSkills, []));
   const [mcpServers, setMcpServers] = useState(() => loadJSON(STORAGE_KEYS.mcpServers, DEFAULT_MCP_SERVERS));
   const [showHistory, setShowHistory] = useState(false);
+  const [showDashboard, setShowDashboard] = useState(false);
+  const [workspaces, setWorkspaces] = useState<Workspace[]>(() => loadJSON(STORAGE_KEYS.workspaces, [{ id: 'default', name: 'Personal workspace', projects: [] }]));
   const abortRef = useRef<AbortController | null>(null);
 
   const activeProvider =
@@ -56,6 +59,7 @@ export default function App() {
   useEffect(() => saveJSON(STORAGE_KEYS.conversations, conversations), [conversations]);
   useEffect(() => saveJSON(STORAGE_KEYS.mcpServers, mcpServers), [mcpServers]);
   useEffect(() => saveJSON(STORAGE_KEYS.agentSkills, skills), [skills]);
+  useEffect(() => saveJSON(STORAGE_KEYS.workspaces, workspaces), [workspaces]);
 
   const activeMcpTools = enabledMcpTools(mcpServers);
 
@@ -210,6 +214,13 @@ export default function App() {
             </button>
             <button
               type="button"
+              onClick={() => setShowDashboard(true)}
+              className="min-h-11 rounded-md border border-cyan-400/30 bg-cyan-400/10 px-3 text-xs text-cyan-200 hover:bg-cyan-400/20 md:min-h-0 md:px-2.5 md:py-1"
+            >
+              Dashboard
+            </button>
+            <button
+              type="button"
               onClick={() => setShowSkills(true)}
               className="min-h-11 rounded-md border border-slate-300 px-3 text-xs hover:bg-slate-100 md:min-h-0 md:px-2.5 md:py-1 dark:border-slate-700 dark:hover:bg-slate-800"
             >
@@ -252,6 +263,7 @@ export default function App() {
         </div>
       </main>
 
+      {showDashboard && <DashboardPanel conversations={conversations} workspaces={workspaces} onWorkspacesChange={setWorkspaces} onClose={() => setShowDashboard(false)} />}
       {showSkills && <SkillsPanel skills={skills} onChange={setSkills} onClose={() => setShowSkills(false)} />}
       {showMcp && <McpPanel servers={mcpServers} onChange={setMcpServers} onClose={() => setShowMcp(false)} />}
 

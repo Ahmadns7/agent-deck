@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { isValidBaseUrl, PROVIDER_PRESETS } from '../lib/providers';
+import { isValidBaseUrl, MODEL_PRESETS, PROVIDER_PRESETS } from '../lib/providers';
 import { defaultFallbackFor, effectiveFallbacks, parseFallbackModels } from '../lib/fallback';
 import { DEFAULT_CONTEXT_BUDGET } from '../lib/context';
 import { uid } from '../lib/id';
@@ -219,6 +219,19 @@ function ProviderForm({
           onChange={(e) => onChange({ model: e.target.value })}
         />
       </label>
+      <div className="flex flex-wrap gap-1">
+        {MODEL_PRESETS.map((m) => (
+          <button
+            key={`${m.provider}-${m.id}`}
+            type="button"
+            title={`${m.provider} free tier · ${m.source}`}
+            onClick={() => onChange({ model: m.id })}
+            className={`rounded-full border px-2 py-0.5 text-xs ${provider.model === m.id ? 'border-slate-900 bg-slate-900 text-white' : 'border-slate-300 text-slate-600'}`}
+          >
+            {m.provider} · {m.id}
+          </button>
+        ))}
+      </div>
       <FallbackField provider={provider} onChange={onChange} />
       <label className="block text-xs text-slate-500">
         Context budget (estimated tokens sent per request)

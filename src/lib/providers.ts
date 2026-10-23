@@ -85,3 +85,28 @@ export function buildChatRequest(provider: ProviderConfig, messages: ChatMessage
     },
   };
 }
+
+export interface ModelPreset {
+  id: string;
+  provider: 'Groq' | 'Gemini';
+  tier: 'free';
+  /** Docs page the ID was verified against. */
+  source: string;
+}
+
+const GROQ_DOCS = 'console.groq.com/docs/models';
+const GEMINI_DOCS = 'ai.google.dev/gemini-api/docs/models';
+
+/** Free-tier chat models verified against the official model docs on 2026-10-23. */
+export const MODEL_PRESETS: ModelPreset[] = [
+  { id: 'openai/gpt-oss-120b', provider: 'Groq', tier: 'free', source: GROQ_DOCS },
+  { id: 'openai/gpt-oss-20b', provider: 'Groq', tier: 'free', source: GROQ_DOCS },
+  { id: 'qwen/qwen3.8-27b', provider: 'Groq', tier: 'free', source: `${GROQ_DOCS} (preview)` },
+  { id: 'gemini-3.5-flash-lite', provider: 'Gemini', tier: 'free', source: GEMINI_DOCS },
+  { id: 'gemini-3.1-flash-lite', provider: 'Gemini', tier: 'free', source: GEMINI_DOCS },
+  { id: 'gemini-3.6-flash', provider: 'Gemini', tier: 'free', source: GEMINI_DOCS },
+  { id: 'gemini-3.8-flash', provider: 'Gemini', tier: 'free', source: GEMINI_DOCS },
+  { id: 'gemini-2.5-flash', provider: 'Gemini', tier: 'free', source: GEMINI_DOCS },
+  { id: 'gemini-2.5-flash-lite', provider: 'Gemini', tier: 'free', source: GEMINI_DOCS },
+  { id: 'gemini-2.5-pro', provider: 'Gemini', tier: 'free', source: GEMINI_DOCS },
+];

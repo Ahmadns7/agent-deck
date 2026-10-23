@@ -8,6 +8,7 @@ interface ChatViewProps {
   onSend: () => void;
   onStop: () => void;
   streaming: boolean;
+  mcpTools: string[];
   providerReady: boolean;
 }
 
@@ -18,6 +19,7 @@ export function ChatView({
   onSend,
   onStop,
   streaming,
+  mcpTools,
   providerReady,
 }: ChatViewProps) {
   const endRef = useRef<HTMLDivElement>(null);
@@ -58,6 +60,7 @@ export function ChatView({
           else onSend();
         }}
       >
+        {mcpTools.length > 0 && <p className="mb-2 text-xs text-slate-500">MCP tools enabled: {mcpTools.join(', ')}</p>}
         {!providerReady && (
           <p className="mb-2 text-xs text-amber-600 dark:text-amber-400">
             This provider has no API key yet. Open Providers to add one.

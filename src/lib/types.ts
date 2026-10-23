@@ -38,6 +38,21 @@ export interface Conversation {
 
 export type ProviderKind = 'openai' | 'anthropic';
 
+export interface McpTool {
+  id: string;
+  name: string;
+  description: string;
+  enabled: boolean;
+}
+
+export interface McpServer {
+  id: string;
+  name: string;
+  url: string;
+  status: 'available' | 'offline';
+  tools: McpTool[];
+}
+
 export interface ProviderConfig {
   id: string;
   name: string;

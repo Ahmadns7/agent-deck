@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from 'react';
 import { ChatView } from './components/ChatView';
 import { Sidebar } from './components/Sidebar';
 import { SettingsPanel } from './components/SettingsPanel';
+import { McpPanel } from './components/McpPanel';
+import { DEFAULT_MCP_SERVERS, enabledMcpTools } from './lib/mcp';
 import { StatsDisclosure, StatsPanel } from './components/StatsPanel';
 import { PROVIDER_PRESETS } from './lib/providers';
 import { lastStatsMessage, titleFrom, updateConversation, updateMessage } from './lib/conversations';
@@ -32,6 +34,8 @@ export default function App() {
   const [draft, setDraft] = useState('');
   const [streaming, setStreaming] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [showMcp, setShowMcp] = useState(false);
+  const [mcpServers, setMcpServers] = useState(() => loadJSON(STORAGE_KEYS.mcpServers, DEFAULT_MCP_SERVERS));
   const [showHistory, setShowHistory] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
 
@@ -47,6 +51,9 @@ export default function App() {
   useEffect(() => saveJSON(STORAGE_KEYS.providers, providers), [providers]);
   useEffect(() => saveJSON(STORAGE_KEYS.activeProvider, activeProvider?.id ?? ''), [activeProvider]);
   useEffect(() => saveJSON(STORAGE_KEYS.conversations, conversations), [conversations]);
+  useEffect(() => saveJSON(STORAGE_KEYS.mcpServers, mcpServers), [mcpServers]);
+
+  const activeMcpTools = enabledMcpTools(mcpServers);
 
   function newChat() {
     if (streaming) return;
@@ -196,6 +203,13 @@ export default function App() {
             </button>
             <button
               type="button"
+              onClick={() => setShowMcp(true)}
+              className="min-h-11 rounded-md border border-slate-300 px-3 text-xs hover:bg-slate-100 md:min-h-0 md:px-2.5 md:py-1 dark:border-slate-700 dark:hover:bg-slate-800"
+            >
+              Tools {activeMcpTools.length > 0 && `(${activeMcpTools.length})`}
+            </button>
+            <button
+              type="button"
               onClick={() => setShowSettings(true)}
               className="min-h-11 rounded-md border border-slate-300 px-3 text-xs hover:bg-slate-100 md:min-h-0 md:px-2.5 md:py-1 dark:border-slate-700 dark:hover:bg-slate-800"
             >
@@ -214,6 +228,7 @@ export default function App() {
             onSend={send}
             onStop={stop}
             streaming={streaming}
+            mcpTools={activeMcpTools.map((tool) => tool.name)}
             providerReady={
               Boolean(activeProvider?.apiKey) ||
               (activeProvider?.kind === 'openai' && activeProvider.baseUrl.includes('localhost'))
@@ -222,6 +237,8 @@ export default function App() {
           <StatsPanel stats={stats} />
         </div>
       </main>
+
+      {showMcp && <McpPanel servers={mcpServers} onChange={setMcpServers} onClose={() => setShowMcp(false)} />}
 
       {showSettings && (
         <SettingsPanel
